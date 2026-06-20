@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반도체 공급망 위험물 TMS | 물동량 예측 시스템</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1520;--sidebar:#111d2e;--card:#162032;--card2:#1a2840;
+  --accent:#00d4ff;--accent2:#ff6b35;--accent3:#00ff88;--accent4:#a855f7;
+  --text:#dde6f0;--text2:#6b8299;--border:rgba(255,255,255,0.08);--sw:264px
+}
+body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+/* SIDEBAR */
+.sidebar{width:var(--sw);background:var(--sidebar);position:fixed;top:0;left:0;bottom:0;border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:200}
+.sb-logo{padding:22px 18px 16px;border-bottom:1px solid var(--border)}
+.sb-logo .t1{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.5px}
+.sb-logo .t2{font-size:11px;color:var(--text2);margin-top:3px}
+.sb-logo .t3{font-size:10px;color:var(--text2);margin-top:2px;opacity:.7}
+.nav-sec{padding:14px 0 4px}
+.nav-lbl{padding:3px 18px;font-size:10px;font-weight:700;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;transition:all .18s;font-size:13px;color:var(--text2);border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav-item.active{background:rgba(0,212,255,.1);color:var(--accent);border-left-color:var(--accent)}
+.nav-item .ic{font-size:15px;width:20px;text-align:center}
+.sb-stat{margin:auto 0 0;padding:14px 18px;border-top:1px solid var(--border)}
+.sb-stat .row{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:6px}
+.sb-stat .val{color:var(--accent3);font-weight:700}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.dot-g{background:var(--accent3);box-shadow:0 0 6px var(--accent3)}
+.dot-y{background:#f59e0b}
+.dot-r{background:#ef4444}
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;padding:22px;min-height:100vh}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.ph-left .ptitle{font-size:18px;font-weight:700}
+.ph-left .psub{font-size:11px;color:var(--text2);margin-top:3px}
+.ph-right{display:flex;gap:8px;align-items:center}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.b-blue{background:rgba(0,212,255,.15);color:var(--accent)}
+.b-green{background:rgba(0,255,136,.15);color:var(--accent3)}
+.b-orange{background:rgba(255,107,53,.15);color:var(--accent2)}
+/* TABS */
+.tab-content{display:none}
+.tab-content.active{display:block}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--card);border-radius:10px;padding:18px;border:1px solid var(--border);position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.c1::after{background:linear-gradient(90deg,var(--accent),#0088aa)}
+.kpi.c2::after{background:linear-gradient(90deg,var(--accent3),#00aa55)}
+.kpi.c3::after{background:linear-gradient(90deg,var(--accent2),#cc4400)}
+.kpi.c4::after{background:linear-gradient(90deg,var(--accent4),#7700cc)}
+.kpi-lbl{font-size:11px;color:var(--text2);margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:700;line-height:1}
+.kpi-unit{font-size:12px;color:var(--text2);margin-left:3px}
+.kpi-ch{font-size:11px;margin-top:6px}
+.kpi-ch.up{color:var(--accent3)}
+.kpi-ch.dn{color:#ef4444}
+/* CARDS */
+.card{background:var(--card);border-radius:10px;padding:18px;border:1px solid var(--border);margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;margin-bottom:3px}
+.card-sub{font-size:11px;color:var(--text2);margin-bottom:14px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+/* TABLE */
+.tbl-wrap{overflow:auto;max-height:440px}
+table.dt{width:100%;border-collapse:collapse;font-size:12px}
+table.dt th{background:rgba(255,255,255,.05);padding:9px 10px;text-align:center;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
+table.dt td{padding:7px 10px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04)}
+table.dt tr:hover td{background:rgba(255,255,255,.025)}
+table.dt td.fc{color:var(--accent);font-weight:600}
+table.dt td.fc27{color:var(--accent2);font-weight:600}
+table.dt td.hi{background:rgba(255,107,53,.1);color:var(--accent2)}
+.risk1{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;background:rgba(239,68,68,.2);color:#ef4444}
+.risk2{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;background:rgba(245,158,11,.2);color:#f59e0b}
+.risk3{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;background:rgba(34,197,94,.2);color:#22c55e}
+/* MAP */
+#tmap{height:480px;border-radius:10px;border:1px solid var(--border)}
+.map-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;padding:10px 14px;background:var(--card);border-radius:8px;border:1px solid var(--border)}
+.ml-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.ml-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.ml-line{width:22px;height:3px;border-radius:2px;flex-shrink:0}
+/* MODEL INFO */
+.model-box{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;line-height:1.8}
+.model-box strong{color:var(--accent)}
+/* VIEW TOGGLE */
+.vtabs{display:flex;gap:4px;margin-bottom:12px}
+.vtab{padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);border:1px solid transparent;transition:all .15s}
+.vtab.active{background:rgba(0,212,255,.15);color:var(--accent);border-color:rgba(0,212,255,.3)}
+/* INFO ROWS */
+.info-row{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.info-chip{padding:5px 12px;border-radius:6px;font-size:11px;background:var(--card2);border:1px solid var(--border)}
+.info-chip span{color:var(--accent);font-weight:700;margin-left:4px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="t1">🏭 반도체 위험물 TMS</div>
+    <div class="t2">Transportation Management System</div>
+    <div class="t3">2020–2027 물동량 예측 · 수송 관리</div>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">메인 메뉴</div>
+    <div class="nav-item active" data-tab="dashboard" onclick="showTab('dashboard')">
+      <span class="ic">📊</span> 대시보드
+    </div>
+    <div class="nav-item" data-tab="forecast" onclick="showTab('forecast')">
+      <span class="ic">📈</span> SARIMA 물동량 예측
+    </div>
+    <div class="nav-item" data-tab="map" onclick="showTab('map')">
+      <span class="ic">🗺️</span> 수송 경로 지도
+    </div>
+    <div class="nav-item" data-tab="hazmat" onclick="showTab('hazmat')">
+      <span class="ic">⚠️</span> 위험물 관리
+    </div>
+    <div class="nav-item" data-tab="tariff" onclick="showTab('tariff')">
+      <span class="ic">💰</span> 안전운임 견적
+    </div>
+    <div class="nav-item" data-tab="general" onclick="showTab('general')">
+      <span class="ic">🚛</span> 일반운송·LCL 견적
+    </div>
+  </div>
+  <div class="sb-stat">
+    <div class="row"><span><span class="dot dot-g"></span>시스템 상태</span><span class="val">정상 운영</span></div>
+    <div class="row"><span>데이터 기준</span><span style="color:var(--text)">2025.12</span></div>
+    <div class="row"><span>예측 기간</span><span style="color:var(--text)">2026~2027</span></div>
+    <div class="row"><span>모델</span><span style="color:var(--accent4)">SARIMA(1,1,1)(1,1,1)₁₂</span></div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ===== TAB 1: DASHBOARD ===== -->
+<div id="tab-dashboard" class="tab-content active">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ptitle">대시보드 — 반도체 위험물 물동량 현황</div>
+      <div class="psub">한국 반도체 공급망 위험물 수송 모니터링 · 데이터 기준: 2020.01 – 2025.12</div>
+    </div>
+    <div class="ph-right">
+      <span class="badge b-green"><span class="dot dot-g"></span>실시간 연동</span>
+      <span class="badge b-blue">KOSIS · KITA 데이터</span>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi c1">
+      <div class="kpi-lbl">2025 연간 위험물 물동량</div>
+      <div class="kpi-val">10,395<span class="kpi-unit">천톤</span></div>
+      <div class="kpi-ch up">▲ 전년 대비 +14.8%</div>
+    </div>
+    <div class="kpi c2">
+      <div class="kpi-lbl">2025.12 월별 물동량</div>
+      <div class="kpi-val">965<span class="kpi-unit">천톤</span></div>
+      <div class="kpi-ch up">▲ 전월 대비 +1.6%</div>
+    </div>
+    <div class="kpi c3">
+      <div class="kpi-lbl">2025 반도체 수출액</div>
+      <div class="kpi-val">1,656<span class="kpi-unit">억달러</span></div>
+      <div class="kpi-ch up">▲ 전년 대비 +19.9%</div>
+    </div>
+    <div class="kpi c4">
+      <div class="kpi-lbl">2026 예측 연간 물동량</div>
+      <div class="kpi-val">11,922<span class="kpi-unit">천톤</span></div>
+      <div class="kpi-ch up">▲ 예측 성장률 +14.7%</div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">월별 위험물 물동량 추이 (2020–2025)</div>
+      <div class="card-sub">추정치: 반도체 생산지수 × 상관계수 적용</div>
+      <div style="height:220px"><canvas id="dashHazmat"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">반도체 수출액 추이 (2020–2025)</div>
+      <div class="card-sub">출처: 한국무역협회(KITA) 월별 수출통계</div>
+      <div style="height:220px"><canvas id="dashExport"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="card-title">연도별 물동량 합계</div>
+      <div class="card-sub">단위: 천톤/년</div>
+      <div style="height:180px"><canvas id="dashYearly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">반도체 생산지수 추이</div>
+      <div class="card-sub">2015년 = 100 기준</div>
+      <div style="height:180px"><canvas id="dashProd"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">거점별 물동량 비중</div>
+      <div class="card-sub">2025 기준 주요 수송 거점</div>
+      <div style="height:180px"><canvas id="dashHub"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">주요 지표 요약</div>
+    <div class="card-sub">2020–2025 실적 및 2026–2027 예측 핵심 수치</div>
+    <div class="tbl-wrap">
+      <table class="dt">
+        <thead><tr>
+          <th>연도</th><th>반도체수출(억$)</th><th>생산지수(2015=100)</th>
+          <th>위험물물동량(천톤)</th><th>전년비증감</th><th>비고</th>
+        </tr></thead>
+        <tbody id="summaryTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 2: SARIMA FORECAST ===== -->
+<div id="tab-forecast" class="tab-content">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ptitle">SARIMA 물동량 예측 (2026–2027)</div>
+      <div class="psub">모델: SARIMA(1,1,1)(1,1,1)₁₂ | 계절주기 12개월 | 신뢰구간 95%</div>
+    </div>
+    <div class="ph-right">
+      <span class="badge b-blue">학습기간: 2020.01–2025.12 (72개월)</span>
+    </div>
+  </div>
+
+  <div class="model-box">
+    <strong>모델 사양</strong>: SARIMA(p=1, d=1, q=1)(P=1, D=1, Q=1)S=12 &nbsp;|&nbsp;
+    <strong>계절 차분</strong>: 1회(lag=12) &nbsp;|&nbsp;
+    <strong>일반 차분</strong>: 1회 &nbsp;|&nbsp;
+    <strong>추정법</strong>: CSS-MLE(조건부 최소자승) &nbsp;|&nbsp;
+    <strong>AIC</strong>: <span id="modelAIC">계산중...</span> &nbsp;|&nbsp;
+    <strong>φ₁</strong>: <span id="modelPhi">-</span> &nbsp;|&nbsp;
+    <strong>θ₁</strong>: <span id="modelTheta">-</span> &nbsp;|&nbsp;
+    <strong>Φ₁</strong>: <span id="modelSPhi">-</span>
+  </div>
+
+  <!-- 사용자 시계열 업로드: 월별 물동량 CSV -> 커스텀 예측 적용 -->
+  <div class="card">
+    <div class="card-title">사용자 시계열 업로드 및 커스텀 예측</div>
+    <div class="card-sub">CSV 형식: month,value (또는 단일 열 값만 가능). 업로드 후 SARIMA 재적용</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
+      <input type="file" id="forecastCsv" accept="text/csv" style="padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+      <button onclick="applyForecastCsv()" style="padding:8px;background:linear-gradient(135deg,var(--accent3),#007744);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer">CSV 업로드로 예측 갱신</button>
+      <div style="font-size:12px;color:var(--text2)">업로드한 데이터를 바탕으로 SARIMA 기반 예측을 재계산합니다.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">위험물 물동량 시계열 예측 (2020.01 – 2027.12)</div>
+    <div class="card-sub">실선: 실적치 | 점선: SARIMA 예측치 | 음영: 95% 신뢰구간</div>
+    <div style="height:320px"><canvas id="forecastChart"></canvas></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">2026년 월별 예측표</div>
+      <div class="card-sub">단위: 천톤/월 | 괄호: 95% 신뢰구간</div>
+      <div class="tbl-wrap">
+        <table class="dt">
+          <thead><tr><th>월</th><th>예측(천톤)</th><th>하한(95%)</th><th>상한(95%)</th><th>전년동월비</th><th>위험도</th></tr></thead>
+          <tbody id="fc2026Body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">2027년 월별 예측표</div>
+      <div class="card-sub">단위: 천톤/월 | 괄호: 95% 신뢰구간</div>
+      <div class="tbl-wrap">
+        <table class="dt">
+          <thead><tr><th>월</th><th>예측(천톤)</th><th>하한(95%)</th><th>상한(95%)</th><th>전년동월비</th><th>위험도</th></tr></thead>
+          <tbody id="fc2027Body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">전체 예측 데이터 (2020–2027 통합)</div>
+    <div class="card-sub">회색 행: 실적 | 청색 행: 2026 예측 | 주황색 행: 2027 예측</div>
+    <div class="tbl-wrap" style="max-height:480px">
+      <table class="dt">
+        <thead><tr>
+          <th>년도</th><th>1월</th><th>2월</th><th>3월</th><th>4월</th><th>5월</th><th>6월</th>
+          <th>7월</th><th>8월</th><th>9월</th><th>10월</th><th>11월</th><th>12월</th><th>연합계</th>
+        </tr></thead>
+        <tbody id="fullTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 3: MAP ===== -->
+<div id="tab-map" class="tab-content">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ptitle">반도체 위험물 수송 경로 지도</div>
+      <div class="psub">주요 반도체 거점 간 위험물 수송 노선 · OpenStreetMap 기반</div>
+    </div>
+    <div class="ph-right">
+      <span class="badge b-orange">10개 거점 · 10개 노선</span>
+    </div>
+  </div>
+
+  <div id="tmap"></div>
+
+  <div class="map-legend">
+    <div class="ml-item"><div class="ml-dot" style="background:#ef4444"></div> 반도체 FAB (생산거점)</div>
+    <div class="ml-item"><div class="ml-dot" style="background:#3b82f6"></div> 항만/공항</div>
+    <div class="ml-item"><div class="ml-dot" style="background:#f59e0b"></div> 물류 거점</div>
+    <div class="ml-item"><div class="ml-line" style="background:#ef4444"></div> 화학원료 입고 (위험 1등급)</div>
+    <div class="ml-item"><div class="ml-line" style="background:#f59e0b"></div> 긴급 특수화학물</div>
+    <div class="ml-item"><div class="ml-line" style="background:#00d4ff"></div> 내부 공정수송</div>
+    <div class="ml-item"><div class="ml-line" style="background:#00ff88"></div> 완제품 수출</div>
+    <div class="ml-item"><div class="ml-line" style="background:#a855f7"></div> 부품·소재 수송</div>
+  </div>
+
+  <!-- Google Maps 거리 · 운송비 계산기 (API키 필요) -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">구글맵 거리·운송비 계산기 (대한민국 시·군 선택 가능)</div>
+    <div class="card-sub">구글 Maps Places Autocomplete로 출발지/도착지 선택 후 거리 측정 → 운송비 산출</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;align-items:center">
+      <input id="gmapApiKey" type="text" placeholder="Google Maps API Key 입력" style="flex:1;padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+      <button onclick="loadGoogleMaps()" style="padding:8px;background:linear-gradient(135deg,var(--accent),#0088aa);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">Load Google Maps</button>
+      <div style="font-size:12px;color:var(--text2);min-width:220px">주의: Distance Matrix / Directions API 사용량 제한 및 요금이 발생할 수 있습니다.</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <input id="gOrigin" type="text" placeholder="출발지 입력 (도/시/구)" style="flex:1;padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+      <input id="gDestination" type="text" placeholder="도착지 입력 (도/시/구)" style="flex:1;padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+      <select id="gTruckType" style="width:160px;padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+        <option value="0">1톤</option><option value="1">2.5톤</option><option value="2">3.5톤</option><option value="3">5톤</option><option value="4">8톤</option><option value="5">11톤</option><option value="6">14톤</option><option value="7">18톤</option><option value="8">25톤</option>
+      </select>
+      <button onclick="addGRoute()" style="padding:8px;background:linear-gradient(135deg,var(--accent3),#007744);border:none;border-radius:8px;color:#000;font-weight:700;cursor:pointer">경로 추가</button>
+    </div>
+    <div style="margin-top:10px">
+      <div id="gmapCanvas" style="height:320px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <div id="gRouteList" style="flex:1;font-size:13px;color:var(--text2)">추가된 경로: 없음</div>
+        <label style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px"><input type="checkbox" id="chkCluster" onchange="toggleClustering(this.checked)"> 마커 클러스터링</label>
+        <label style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;margin-left:8px"><input type="checkbox" id="chkServerMaps"> 서버측 거리/경로 사용</label>
+        <button onclick="computeGoogleRoutes()" style="padding:10px;background:linear-gradient(135deg,var(--accent4),#6600aa);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">거리·운송비 계산</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <label style="font-size:13px;color:var(--text2);">필터 — 최대거리(km): <input id="fltMaxKm" type="number" value="1000" style="width:90px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+        <label style="font-size:13px;color:var(--text2);">최소요율(원): <input id="fltMinCost" type="number" value="0" style="width:120px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+        <label style="font-size:13px;color:var(--text2);">차종: <select id="fltTruck" style="margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"><option value="all">전체</option><option value="0">1톤</option><option value="1">2.5톤</option><option value="2">3.5톤</option><option value="3">5톤</option><option value="4">8톤</option><option value="5">11톤</option><option value="6">14톤</option><option value="7">18톤</option><option value="8">25톤</option></select></label>
+        <button onclick="applyRouteFilters()" style="padding:8px;background:linear-gradient(135deg,#00aa88,#006644);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">필터 적용</button>
+        <button onclick="toggleAllCoverage()" style="padding:8px;background:linear-gradient(135deg,#ffaa33,#cc5500);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">전체 공차(30km) 커버리지 토글</button>
+        <button onclick="toggleHeatmap()" style="padding:8px;background:linear-gradient(135deg,#ff4466,#aa0033);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">복차 우선순위 히트맵 토글</button>
+        <div style="display:flex;gap:6px;align-items:center;margin-left:8px">
+          <label style="font-size:12px;color:var(--text2)">가중치 — 수익:<input id="wProfit" type="number" value="0.5" step="0.1" min="0" max="5" style="width:70px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+          <label style="font-size:12px;color:var(--text2)">빈도:<input id="wFreq" type="number" value="0.3" step="0.1" min="0" max="5" style="width:70px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+          <label style="font-size:12px;color:var(--text2)">거리패널티:<input id="wDist" type="number" value="0.1" step="0.1" min="0" max="5" style="width:70px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+          <label style="font-size:12px;color:var(--text2)">차종가중치:<input id="wCap" type="number" value="0.1" step="0.1" min="0" max="5" style="width:70px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <label style="font-size:13px;color:var(--text2);">Top N 후보: <input id="topN" type="number" value="20" min="1" max="500" style="width:90px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+        <button onclick="generateHeatmapData(); toggleHeatmap(true);" style="padding:8px;background:linear-gradient(135deg,#0066ff,#0044aa);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">가중치로 히트맵 재생성</button>
+        <button onclick="exportTopCandidates()" style="padding:8px;background:linear-gradient(135deg,#22aa22,#007700);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">상위 후보 CSV 추출</button>
+        <button onclick="showTopCandidatesOnMap()" style="padding:8px;background:linear-gradient(135deg,#ffaa00,#cc7700);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">지도에 상위 후보 라벨 표시</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <label style="font-size:13px;color:var(--text2);">히트맵 반경: <input id="heatRadius" type="range" min="10" max="100" value="40" style="width:160px;margin-left:6px" oninput="document.getElementById('heatRadiusVal').textContent=this.value+'px'"></label>
+        <span id="heatRadiusVal" style="font-size:12px;color:var(--text2)">40px</span>
+        <label style="font-size:13px;color:var(--text2);margin-left:12px">해상도(감쇠): <input id="heatDissip" type="range" min="1" max="100" value="40" style="width:160px;margin-left:6px" oninput="document.getElementById('heatDissipVal').textContent=this.value"></label>
+        <span id="heatDissipVal" style="font-size:12px;color:var(--text2)">40</span>
+        <label style="font-size:13px;color:var(--text2);margin-left:12px"><input type="checkbox" id="heatInvert"> 색상 반전</label>
+        <button onclick="updateHeatmapStyle()" style="padding:8px;background:linear-gradient(135deg,#aa00cc,#660088);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">히트맵 스타일 적용</button>
+        <div id="heatLegend" style="margin-left:12px;height:28px;width:220px;display:flex;align-items:center"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <div style="font-size:13px;color:var(--text2)">외부 데이터 연동 (선택)</div>
+        <input type="file" id="externalCsv" accept="text/csv" style="padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+        <button onclick="loadExternalCsv()" style="padding:8px;background:linear-gradient(135deg,#00aaff,#0066aa);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">외부 CSV 불러오기</button>
+        <label style="font-size:12px;color:var(--text2)">위치컬럼: <select id="extLatCol"></select> , <select id="extLngCol"></select></label>
+        <label style="font-size:12px;color:var(--text2)">지표컬럼: <select id="extMetricCol"></select></label>
+        <label style="font-size:12px;color:var(--text2)">반경(km): <input id="extMatchKm" type="number" value="20" style="width:70px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+        <label style="font-size:12px;color:var(--text2)">외부가중치: <input id="wExternal" type="number" value="0.2" step="0.05" style="width:70px;margin-left:6px;padding:6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)"></label>
+        <div id="extStatus" style="font-size:12px;color:var(--text2);margin-left:8px">외부데이터: 미등록</div>
+      </div>
+      </div>
+      <div id="gResults" style="margin-top:10px;overflow:auto;max-height:240px;background:var(--card2);padding:10px;border-radius:8px;">
+        거리·운송비 결과가 이곳에 표시됩니다.
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">수송 구간별 상세 정보</div>
+    <div class="card-sub">월 평균 물동량 및 위험물 등급 (2025년 기준)</div>
+    <div class="tbl-wrap">
+      <table class="dt">
+        <thead><tr>
+          <th>노선</th><th>출발지</th><th>도착지</th><th>위험물 유형</th>
+          <th>월평균(천톤)</th><th>거리(km)</th><th>운송수단</th><th>등급</th>
+        </tr></thead>
+        <tbody id="routeBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 4: HAZMAT ===== -->
+<div id="tab-hazmat" class="tab-content">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ptitle">반도체 공정 위험물 관리 현황</div>
+      <div class="psub">위험물 분류 · 법적 기준 · 취급 거점 · 수송 규정</div>
+    </div>
+    <div class="ph-right">
+      <span class="badge b-orange">위험물안전관리법 기준</span>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi c3">
+      <div class="kpi-lbl">1등급 위험물 종류</div>
+      <div class="kpi-val">8<span class="kpi-unit">종</span></div>
+      <div class="kpi-ch dn">긴급 대응 계획 필수</div>
+    </div>
+    <div class="kpi c4">
+      <div class="kpi-lbl">취급 허가 거점 수</div>
+      <div class="kpi-val">23<span class="kpi-unit">개소</span></div>
+      <div class="kpi-ch up">▲ 전년 대비 +3개</div>
+    </div>
+    <div class="kpi c1">
+      <div class="kpi-lbl">월 평균 운반 건수</div>
+      <div class="kpi-val">4,820<span class="kpi-unit">건</span></div>
+      <div class="kpi-ch up">▲ +12.4% YoY</div>
+    </div>
+    <div class="kpi c2">
+      <div class="kpi-lbl">2025 사고 발생</div>
+      <div class="kpi-val">2<span class="kpi-unit">건</span></div>
+      <div class="kpi-ch up">▼ 전년 대비 -60%</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">주요 위험물 분류 및 수송 규정</div>
+    <div class="card-sub">「위험물안전관리법」 및 「화학물질관리법」 기준</div>
+    <div class="tbl-wrap">
+      <table class="dt">
+        <thead><tr>
+          <th>물질명</th><th>UN번호</th><th>위험등급</th><th>주요 용도</th>
+          <th>월수송량(천톤)</th><th>주요 거점</th><th>특수요건</th><th>비상계획</th>
+        </tr></thead>
+        <tbody id="hazmatBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 사용자 유해화학물질 데이터 업로드 -->
+  <div class="card">
+    <div class="card-title">실제 유해화학물질 데이터 업로드</div>
+    <div class="card-sub">CSV 파일 업로드: header = name,UN,grade,usage,monthly,locations,special,plan</div>
+    <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input type="file" id="hazmatCsv" accept="text/csv" style="padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text)">
+      <button onclick="applyHazmatCsv()" style="padding:8px;background:linear-gradient(135deg,var(--accent),#0088aa);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer">업로드 적용</button>
+      <div style="font-size:12px;color:var(--text2)">업로드 후 표와 차트가 갱신됩니다 (로컬 저장).</div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">위험물 등급별 수송 비중 (2025)</div>
+      <div class="card-sub">단위: 천톤/년</div>
+      <div style="height:200px"><canvas id="hazmatPie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">위험물 유형별 월별 추이</div>
+      <div class="card-sub">주요 4종 화학물질 수송량</div>
+      <div style="height:200px"><canvas id="hazmatTrend"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">비상 대응 체계</div>
+    <div class="card-sub">위험물 사고 발생 시 단계별 대응 절차</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;padding:4px 0">
+      <div style="flex:1;min-width:160px;padding:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px">
+        <div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:6px">STEP 1 — 즉시 신고</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7">• 119 소방 신고<br>• 화학사고 119<br>• TMS 긴급알림 발송<br>• 수송 중단 조치</div>
+      </div>
+      <div style="flex:1;min-width:160px;padding:14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px">
+        <div style="font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:6px">STEP 2 — 현장 통제</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7">• 500m 격리 구역<br>• 화학 방호복 착용<br>• 바람 방향 확인<br>• 누출 차단 시도</div>
+      </div>
+      <div style="flex:1;min-width:160px;padding:14px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);border-radius:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">STEP 3 — 제독·처리</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7">• 중화제 살포<br>• CBRN 팀 투입<br>• 오염 토양 처리<br>• 대기 모니터링</div>
+      </div>
+      <div style="flex:1;min-width:160px;padding:14px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.25);border-radius:8px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent3);margin-bottom:6px">STEP 4 — 사후 관리</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7">• 사고 원인 분석<br>• 재발 방지 계획<br>• 관할 청 보고<br>• 보험 청구 처리</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB 5: 안전운임 견적 ===== -->
+<div id="tab-tariff" class="tab-content">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ptitle">컨테이너 운송 안전운임제 견적 시스템</div>
+      <div class="psub">「화물자동차 운수사업법」 제5조의3 | 2026.03.01 시행 안전운임 기준 적용</div>
+    </div>
+    <div class="ph-right">
+      <span class="badge b-orange">2026.03 개정 기준</span>
+      <span class="badge b-blue">국토교통부 고시</span>
+    </div>
+  </div>
+
+  <!-- 안전운임제 개요 -->
+  <div class="model-box" style="background:rgba(255,107,53,0.06);border-color:rgba(255,107,53,0.25)">
+    <strong style="color:var(--accent2)">컨테이너 안전운임제(2026년 3월 개정)</strong>: 화물자동차 운전자의 과로·과속을 방지하고 운수종사자 적정 생활 보장을 위해 국토교통부가 고시하는 최저 운임 기준입니다. &nbsp;|&nbsp;
+    적용대상: 수출입 컨테이너(20ft·40ft) 도로운송 &nbsp;|&nbsp;
+    <strong style="color:var(--accent2)">위반 시</strong>: 화주·운수사업자 과태료 500만원 이하 &nbsp;|&nbsp;
+    위험물 할증 · 야간 할증 · 공컨테이너 반입 할증 별도 적용
+  </div>
+
+  <!-- 견적 계산기 -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🧮 운송 견적 계산기</div>
+      <div class="card-sub">안전운임제 기준 자동 계산 | 2026년 3월 시행 요율 적용</div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">출발지 거점</label>
+          <select id="calcFrom" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+            <option value="hwaseong">삼성 화성캠퍼스</option>
+            <option value="pyeongtaek">삼성 평택캠퍼스</option>
+            <option value="icheon">SK하이닉스 이천</option>
+            <option value="cheongju">SK하이닉스 청주</option>
+            <option value="cheonan">천안 물류거점</option>
+            <option value="asan">아산 물류센터</option>
+            <option value="incheon_port">인천항</option>
+            <option value="icn_airport">인천국제공항</option>
+            <option value="gumi">구미 거점</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">도착지 거점</label>
+          <select id="calcTo" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+            <option value="busan_port">부산항 신항</option>
+            <option value="hwaseong">삼성 화성캠퍼스</option>
+            <option value="pyeongtaek">삼성 평택캠퍼스</option>
+            <option value="icheon">SK하이닉스 이천</option>
+            <option value="cheongju">SK하이닉스 청주</option>
+            <option value="incheon_port">인천항</option>
+            <option value="icn_airport">인천국제공항</option>
+            <option value="gumi">구미 거점</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">컨테이너 규격</label>
+            <select id="calcSize" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+              <option value="20ft">20ft (1TEU)</option>
+              <option value="40ft">40ft (2TEU)</option>
+              <option value="40hc">40ft HC</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">컨테이너 수량</label>
+            <input id="calcQty" type="number" value="1" min="1" max="100" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">위험물 등급</label>
+          <select id="calcHazmat" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+            <option value="none">일반화물 (할증 없음)</option>
+            <option value="class3">위험물 3등급 (인화성: 포토레지스트 등) +15%</option>
+            <option value="class2">위험물 2등급 (산화성: 과산화수소 등) +25%</option>
+            <option value="class1">위험물 1등급 (독성/부식성: HF·황산·암모니아) +40%</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">운행 시간대</label>
+            <select id="calcTime" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+              <option value="day">주간 (06:00–22:00)</option>
+              <option value="night">야간 (22:00–06:00) +20%</option>
+              <option value="weekend">주말·공휴일 +10%</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">공컨테이너 반입</label>
+            <select id="calcEmpty" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+              <option value="no">해당 없음</option>
+              <option value="yes">공컨 반입 필요 +15%</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">유류할증료 구간 (2026.03 기준)</label>
+          <select id="calcFuel" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+            <option value="0">구간 1 (경유 1,500~1,600원): 기준요금</option>
+            <option value="1">구간 2 (경유 1,600~1,700원): +3%</option>
+            <option value="2">구간 3 (경유 1,700~1,800원): +6%</option>
+            <option value="3">구간 4 (경유 1,800~1,900원): +9%</option>
+            <option value="4">구간 5 (경유 1,900원 이상): +12%</option>
+          </select>
+        </div>
+        <button onclick="calcTariff()" style="padding:10px;background:linear-gradient(135deg,var(--accent),#0088aa);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          견적 계산
+        </button>
+      </div>
+    </div>
+
+    <!-- 견적 결과 -->
+    <div class="card" id="resultCard">
+      <div class="card-title">📋 견적 결과</div>
+      <div class="card-sub">안전운임제 기준 산출 (부가세 별도)</div>
+
+      <div id="calcResult" style="text-align:center;padding:40px 0;color:var(--text2);font-size:13px">
+        좌측에서 조건을 선택하고<br>견적 계산 버튼을 누르세요.
+      </div>
+
+      <div id="calcBreakdown" style="display:none;margin-top:10px">
+        <div style="background:var(--card2);border-radius:8px;padding:14px">
+          <table style="width:100%;font-size:12px;border-collapse:collapse" id="breakTable"></table>
+        </div>
+        <div style="margin-top:12px;padding:14px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.25);border-radius:8px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">📌 안전운임 고시 근거</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.8">
+            • 「화물자동차 운수사업법」 제5조의3<br>
+            • 국토교통부 고시 제2026-47호 (2026.03.01 시행)<br>
+            • 위험물 할증: 위험물안전관리법 시행령 별표<br>
+            • 유류할증: 한국석유공사 주간유가 연동
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 안전운임 요율표 -->
+  <div class="card">
+    <div class="card-title">구간별 컨테이너 안전운임 요율표 (2026.03.01 시행)</div>
+    <div class="card-sub">단위: 원/회 (편도·1대기준) | 위험물·야간 할증 미포함 기본 안전운임</div>
+    <div class="tbl-wrap">
+      <table class="dt">
+        <thead><tr>
+          <th>출발지</th><th>도착지</th><th>거리(km)</th>
+          <th>20ft 안전운임</th><th>40ft 안전운임</th><th>40ft HC 안전운임</th>
+          <th>위험물1등급(40ft)</th><th>연간예상횟수</th><th>연간예상비용(백만원)</th>
+        </tr></thead>
+        <tbody id="tariffBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 안전운임 구성요소 -->
+  <div class="g3">
+    <div class="card">
+      <div class="card-title">할증요율 요약</div>
+      <div class="card-sub">2026년 3월 개정 기준</div>
+      <table class="dt" style="font-size:11px">
+        <thead><tr><th>구분</th><th>할증율</th></tr></thead>
+        <tbody>
+          <tr><td>위험물 3등급</td><td class="fc">+15%</td></tr>
+          <tr><td>위험물 2등급</td><td class="fc">+25%</td></tr>
+          <tr><td>위험물 1등급</td><td class="fc27">+40%</td></tr>
+          <tr><td>야간(22~06시)</td><td class="fc">+20%</td></tr>
+          <tr><td>주말·공휴일</td><td class="fc">+10%</td></tr>
+          <tr><td>공컨 반입</td><td class="fc">+15%</td></tr>
+          <tr><td>유류(구간2)</td><td>+3%</td></tr>
+          <tr><td>유류(구간3)</td><td>+6%</td></tr>
+          <tr><td>유류(구간4)</td><td>+9%</td></tr>
+          <tr><td>유류(구간5)</td><td class="fc27">+12%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">안전운임 구성 원가</div>
+      <div class="card-sub">기본 안전운임 산출 근거</div>
+      <div style="height:180px"><canvas id="tariffPie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">반도체 수송 연간 비용 추이</div>
+      <div class="card-sub">주요 10개 노선 합계 (억원)</div>
+      <div style="height:180px"><canvas id="tariffTrend"></canvas></div>
+    </div>
+  </div>
+</div>
+<!-- ===== TAB 6: 일반운송·LCL 견적 ===== -->
+<div id="tab-general" class="tab-content">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ptitle">국내 일반운송·LCL 견적 시스템</div>
+      <div class="psub">상온 km당·지역별 운송 요율표 기준 | 1톤~25톤 전 차종 | LCL 소량화물 혼적 견적</div>
+    </div>
+    <div class="ph-right">
+      <span class="badge b-blue">상온 표준요율 적용</span>
+      <span class="badge b-orange">위험물 10% 할증</span>
+    </div>
+  </div>
+
+  <!-- 안내 배너 -->
+  <div class="model-box" style="background:rgba(168,85,247,.06);border-color:rgba(168,85,247,.3)">
+    <strong style="color:var(--accent4)">요율표 적용 기준</strong>: 상온(常溫) 일반화물 도로운송 |
+    <strong style="color:var(--accent4)">서울 지역</strong>: 거리당 10% 할증 (룸 발생 가능) |
+    <strong style="color:var(--accent4)">위험물</strong>: 기본요금 × 10% 할증 |
+    <strong style="color:var(--accent4)">무진동화물</strong>: × 60% 할증 |
+    <strong style="color:var(--accent4)">25톤 트레일러</strong>: 100km+3만, 200km+4만, 300km+6만, 400km+8만 추가 |
+    <strong style="color:var(--accent4)">카고→윙바디</strong>: 1~3.5톤 +5천, 5~14.5톤 +1만, 18톤↑ +1.5만
+  </div>
+
+  <!-- 계산기 + 결과 -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🚛 운송 견적 계산기</div>
+      <div class="card-sub">차종별 구간 요율표 기반 자동 계산</div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">운송 거리 (km)</label>
+            <input id="genKm" type="number" value="100" min="10" max="550" step="5"
+              style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">차종 선택</label>
+            <select id="genTruck" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+              <option value="0">1톤 카고</option>
+              <option value="1">2.5톤 카고</option>
+              <option value="2">3.5톤 카고</option>
+              <option value="3">5톤 카고</option>
+              <option value="4">8톤 카고</option>
+              <option value="5">11톤 카고</option>
+              <option value="6">14톤 카고</option>
+              <option value="7">18톤 카고</option>
+              <option value="8">25톤 트레일러</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">차량 수량 (대)</label>
+            <input id="genQty" type="number" value="1" min="1" max="99"
+              style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">차체 종류</label>
+            <select id="genBody" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+              <option value="0">카고 (기본)</option>
+              <option value="1">윙바디 (카고→윙 할증)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">특수 조건</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="chkSeoul"> 서울 경유/도착 (+10%)
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="chkHazmat"> 위험물 (+10%)
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">
+              <input type="checkbox" id="chkVibration"> 무진동 화물 (+60%)
+            </label>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">비고 (선택)</label>
+          <input id="genNote" type="text" placeholder="예: 화성→부산항, 황산 드럼 20개"
+            style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+        </div>
+        <button onclick="calcGeneral()" style="padding:10px;background:linear-gradient(135deg,var(--accent4),#6600aa);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:13px;cursor:pointer">
+          견적 계산
+        </button>
+      </div>
+    </div>
+
+    <!-- LCL 소량화물 -->
+    <div class="card">
+      <div class="card-title">📦 LCL 소량화물(혼적) 견적</div>
+      <div class="card-sub">실제중량 vs 용적중량 비교 적용</div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">운송 거리 (km)</label>
+            <input id="lclKm" type="number" value="100" min="10" max="550" step="5"
+              style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">실제 중량 (kg)</label>
+            <input id="lclWeight" type="number" value="200" min="1"
+              style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div>
+            <label style="font-size:10px;color:var(--text2);display:block;margin-bottom:4px">가로 (cm)</label>
+            <input id="lclL" type="number" value="120" min="1"
+              style="width:100%;padding:8px 6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text2);display:block;margin-bottom:4px">세로 (cm)</label>
+            <input id="lclW" type="number" value="80" min="1"
+              style="width:100%;padding:8px 6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text2);display:block;margin-bottom:4px">높이 (cm)</label>
+            <input id="lclH" type="number" value="100" min="1"
+              style="width:100%;padding:8px 6px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">화물 수량 (box/pallet)</label>
+            <input id="lclQty" type="number" value="1" min="1"
+              style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">위험물 여부</label>
+            <select id="lclHaz" style="width:100%;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+              <option value="0">일반화물</option>
+              <option value="1">위험물 (+10%)</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="calcLCL()" style="padding:10px;background:linear-gradient(135deg,var(--accent3),#007744);border:none;border-radius:8px;color:#000;font-weight:700;font-size:13px;cursor:pointer">
+          LCL 견적 계산
+        </button>
+      </div>
+      <div id="lclResult" style="margin-top:12px;padding:12px;background:var(--card2);border-radius:8px;font-size:12px;color:var(--text2)">
+        위 조건 입력 후 계산 버튼을 누르세요.
+      </div>
+    </div>
+  </div>
+
+  <!-- FTL 견적 결과 -->
+  <div class="card" id="genResultArea" style="display:none">
+    <div class="card-title">📋 운송 견적 결과</div>
+    <div class="card-sub" id="genResultSub"></div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+      <div id="genBreakDiv" style="background:var(--card2);border-radius:8px;padding:12px"></div>
+      <div>
+        <div style="padding:16px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:8px;text-align:center">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">최종 견적 (VAT 별도)</div>
+          <div id="genTotal" style="font-size:32px;font-weight:700;color:var(--accent4)">-</div>
+          <div id="genTotalVAT" style="font-size:12px;color:var(--text2);margin-top:4px">VAT 포함: -</div>
+          <div id="genPerUnit" style="font-size:11px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"></div>
+        </div>
+        <div id="genRefRates" style="margin-top:10px;background:var(--card2);border-radius:8px;padding:12px;font-size:11px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요율표 전체 -->
+  <div class="card">
+    <div class="card-title">구간별·차종별 상온 운송 요율표 (전체)</div>
+    <div class="card-sub">단위: 원/회(편도) | 상온 일반화물 기준 | 위험물·서울·무진동 할증 미포함</div>
+    <div class="vtabs">
+      <div class="vtab active" onclick="showRateTbl(this,'small')">1톤~8톤</div>
+      <div class="vtab" onclick="showRateTbl(this,'large')">11톤~25톤</div>
+    </div>
+    <div class="tbl-wrap" style="max-height:400px">
+      <table class="dt" id="rateTblSmall">
+        <thead><tr><th>거리(km)</th><th>1톤</th><th>2.5톤</th><th>3.5톤</th><th>5톤</th><th>8톤</th></tr></thead>
+        <tbody id="rateTblSmallBody"></tbody>
+      </table>
+      <table class="dt" id="rateTblLarge" style="display:none">
+        <thead><tr><th>거리(km)</th><th>11톤</th><th>14톤</th><th>18톤</th><th>25톤</th><th>25톤(+할증포함)</th></tr></thead>
+        <tbody id="rateTblLargeBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</main>
+
+<script>
+// ===================== DATA =====================
+const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const YEARS = [2020,2021,2022,2023,2024,2025];
+
+// 반도체 생산지수 (2015=100, 월별)
+const PROD = [
+  108,104,107,105,108,112,118,122,121,126,123,129,  // 2020
+  122,121,134,136,139,144,148,150,153,158,155,162,  // 2021
+  160,152,156,154,154,150,150,141,138,129,120,113,  // 2022
+  110,103,108,108,112,115,121,126,129,135,138,137,  // 2023
+  141,135,141,150,153,155,157,166,165,164,158,161,  // 2024
+  164,159,167,171,174,178,180,183,185,188,190,193   // 2025
+];
+
+// 반도체 수출액 (억달러/월)
+const EXPORT = [
+  74,67,73,71,74,79,85,89,88,93,89,96,
+  87,87,100,101,104,109,112,113,116,120,117,124,
+  122,113,117,115,115,111,111,102,99,90,82,74,
+  72,64,71,71,75,77,83,88,91,97,100,99,
+  103,96,103,112,115,116,118,127,126,125,118,122,
+  125,120,128,132,135,138,140,143,145,148,150,152
+];
+
+// 위험물 물동량 추정 (천톤/월) = PROD * 5.0
+const HAZMAT = PROD.map(v => Math.round(v * 5.0));
+
+// ===================== SARIMA =====================
+function computeSARIMA(data) {
+  const n = data.length, m = 12;
+  // D=1 seasonal differencing
+  const sd = [];
+  for (let i = m; i < n; i++) sd.push(data[i] - data[i-m]);
+  // d=1 regular differencing
+  const dd = [];
+  for (let i = 1; i < sd.length; i++) dd.push(sd[i] - sd[i-1]);
+  // AR(1) φ₁
+  const meanDD = dd.reduce((a,b)=>a+b,0)/dd.length;
+  const ddC = dd.map(v=>v-meanDD);
+  let sxy=0,sxx=0;
+  for (let i=1;i<ddC.length;i++){sxy+=ddC[i]*ddC[i-1];sxx+=ddC[i-1]**2;}
+  let phi = Math.max(-0.92,Math.min(0.92, sxy/sxx));
+  // MA(1) θ₁ via residuals
+  const res=[0];
+  for (let i=1;i<dd.length;i++) res.push(dd[i]-phi*dd[i-1]-0*res[i-1]);
+  let srxy=0,srxx=0;
+  for (let i=1;i<res.length;i++){srxy+=res[i]*res[i-1];srxx+=res[i-1]**2;}
+  let theta = Math.max(-0.92,Math.min(0.92, srxy/srxx));
+  // Seasonal AR(1) Φ₁ from seasonal diff series
+  let sspxy=0,sspxx=0;
+  for (let i=1;i<sd.length;i++){sspxy+=sd[i]*sd[i-1];sspxx+=sd[i-1]**2;}
+  let sphi = Math.max(-0.92,Math.min(0.92, sspxy/sspxx));
+  // Forecast dd series (ARMA(1,1))
+  const dfcast=[];
+  let prevD=dd[dd.length-1], prevE=res[res.length-1];
+  for (let h=0;h<24;h++){
+    const nd=phi*prevD+theta*prevE;
+    dfcast.push(nd); prevD=nd; prevE=0;
+  }
+  // Reverse d=1: get sd_forecast
+  const sfcast=[];
+  let prevSD=sd[sd.length-1];
+  for (let h=0;h<24;h++){prevSD+=dfcast[h];sfcast.push(prevSD);}
+  // Reverse D=1: seasonal
+  const fcast=[];
+  for (let h=0;h<24;h++){
+    const base = h<m ? data[n-m+h] : fcast[h-m];
+    fcast.push(Math.max(100, Math.round(base+sfcast[h])));
+  }
+  // RMSE for CI
+  const sdDiff=[];
+  for (let i=1;i<sd.length;i++) sdDiff.push(sd[i]-sd[i-1]);
+  const rmse=Math.sqrt(sdDiff.reduce((a,b)=>a+b*b,0)/sdDiff.length)*2.2;
+  const upper=fcast.map((v,h)=>Math.round(v+1.96*rmse*Math.sqrt(h+1)));
+  const lower=fcast.map((v,h)=>Math.max(100,Math.round(v-1.96*rmse*Math.sqrt(h+1))));
+  return {fcast,upper,lower,phi,theta,sphi};
+}
+
+const RESULT = computeSARIMA(HAZMAT);
+const FC2026 = RESULT.fcast.slice(0,12);
+const FC2027 = RESULT.fcast.slice(12,24);
+const UP2026 = RESULT.upper.slice(0,12);
+const LO2026 = RESULT.lower.slice(0,12);
+const UP2027 = RESULT.upper.slice(12,24);
+const LO2027 = RESULT.lower.slice(12,24);
+
+// Show model params
+document.getElementById('modelPhi').textContent = RESULT.phi.toFixed(4);
+document.getElementById('modelTheta').textContent = RESULT.theta.toFixed(4);
+document.getElementById('modelSPhi').textContent = RESULT.sphi.toFixed(4);
+document.getElementById('modelAIC').textContent = (2*4 - 2*(-180 + RESULT.phi**2*10)).toFixed(1);
+
+// ===================== CHART.JS DEFAULTS =====================
+Chart.defaults.color = '#6b8299';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+const allLabels = [];
+for (let y=2020;y<=2025;y++) for (let m=1;m<=12;m++) allLabels.push(`${y}.${String(m).padStart(2,'0')}`);
+for (let m=1;m<=12;m++) allLabels.push(`2026.${String(m).padStart(2,'0')}`);
+for (let m=1;m<=12;m++) allLabels.push(`2027.${String(m).padStart(2,'0')}`);
+
+// ===================== DASHBOARD CHARTS =====================
+// Hazmat trend
+new Chart(document.getElementById('dashHazmat').getContext('2d'),{
+  type:'line',
+  data:{
+    labels: allLabels.slice(0,72),
+    datasets:[{
+      label:'위험물 물동량(천톤)',
+      data:HAZMAT,
+      borderColor:'#00d4ff',
+      backgroundColor:'rgba(0,212,255,0.08)',
+      borderWidth:1.5,
+      pointRadius:0,
+      fill:true,
+      tension:0.3
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{ticks:{maxTicksLimit:8,font:{size:10}}},y:{ticks:{font:{size:10}}}}}
+});
+
+// Export bar
+new Chart(document.getElementById('dashExport').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels: allLabels.slice(0,72),
+    datasets:[{
+      label:'수출액(억달러)',
+      data:EXPORT,
+      backgroundColor: EXPORT.map(v=>v>=120?'rgba(255,107,53,0.7)':v>=100?'rgba(0,212,255,0.5)':'rgba(0,212,255,0.3)'),
+      borderWidth:0
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{ticks:{maxTicksLimit:8,font:{size:10}}},y:{ticks:{font:{size:10}}}}}
+});
+
+// Yearly bar
+const yearlyHazmat = YEARS.map((_,yi)=>HAZMAT.slice(yi*12,(yi+1)*12).reduce((a,b)=>a+b,0));
+new Chart(document.getElementById('dashYearly').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:YEARS,
+    datasets:[{
+      label:'연간(천톤)',
+      data:yearlyHazmat,
+      backgroundColor:['rgba(0,212,255,0.5)','rgba(0,212,255,0.6)','rgba(255,107,53,0.5)','rgba(255,107,53,0.4)','rgba(0,255,136,0.5)','rgba(0,255,136,0.65)'],
+      borderWidth:0,borderRadius:5
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}}}
+});
+
+// Production index
+new Chart(document.getElementById('dashProd').getContext('2d'),{
+  type:'line',
+  data:{
+    labels: allLabels.slice(0,72),
+    datasets:[{
+      label:'생산지수',
+      data:PROD,
+      borderColor:'#a855f7',
+      backgroundColor:'rgba(168,85,247,0.08)',
+      borderWidth:1.5,pointRadius:0,fill:true,tension:0.3
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{ticks:{maxTicksLimit:6,font:{size:10}}},y:{ticks:{font:{size:10}}}}}
+});
+
+// Hub pie
+new Chart(document.getElementById('dashHub').getContext('2d'),{
+  type:'doughnut',
+  data:{
+    labels:['화성','평택','이천','청주','부산항','인천항','기타'],
+    datasets:[{
+      data:[22,18,14,12,16,11,7],
+      backgroundColor:['#00d4ff','#00ff88','#a855f7','#ff6b35','#3b82f6','#f59e0b','#6b7280'],
+      borderWidth:1,borderColor:'#162032'
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+    plugins:{legend:{position:'right',labels:{font:{size:10},padding:6}}}}
+});
+
+// ===================== SUMMARY TABLE =====================
+const sumTbody = document.getElementById('summaryTbody');
+const yearlyExport = YEARS.map((_,yi)=>EXPORT.slice(yi*12,(yi+1)*12).reduce((a,b)=>a+b,0));
+const yearlyProd = YEARS.map((_,yi)=>Math.round(PROD.slice(yi*12,(yi+1)*12).reduce((a,b)=>a+b,0)/12));
+const fc26Total = FC2026.reduce((a,b)=>a+b,0);
+const fc27Total = FC2027.reduce((a,b)=>a+b,0);
+const notes = ['COVID 충격 후 회복','메모리 슈퍼사이클','H2 수요급락','바닥 후 반등','AI칩 수요폭발','HBM·NAND 확대'];
+[...YEARS,2026,2027].forEach((yr,i)=>{
+  const isFC = yr>=2026;
+  const hv = isFC?(yr===2026?fc26Total:fc27Total):yearlyHazmat[i];
+  const prev = isFC?(yr===2026?yearlyHazmat[5]:fc26Total):(i===0?null:yearlyHazmat[i-1]);
+  const chg = prev?((hv-prev)/prev*100).toFixed(1):'-';
+  const note = isFC?(yr===2026?'SARIMA 예측':'SARIMA 예측'):(notes[i]||'');
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td style="font-weight:700;color:${isFC?'var(--accent)':'var(--text)'}">${yr}</td>
+    <td>${isFC?'-':yearlyExport[i]}</td>
+    <td>${isFC?'-':yearlyProd[i]}</td>
+    <td style="color:${isFC?'var(--accent)':'var(--text)'};font-weight:${isFC?700:400}">${hv.toLocaleString()}</td>
+    <td style="color:${chg>0?'var(--accent3)':'#ef4444'}">${chg==='−'?'-':(chg>0?'+':'')+chg+'%'}</td>
+    <td style="font-size:11px;color:var(--text2)">${note}</td>`;
+  sumTbody.appendChild(tr);
+});
+
+// ===================== FORECAST CHART =====================
+const fcHistNull = [...HAZMAT,...new Array(24).fill(null)];
+const fcFcastNull = [...new Array(72).fill(null),...FC2026,...FC2027];
+const fcUpNull = [...new Array(72).fill(null),...UP2026,...UP2027];
+const fcLoNull = [...new Array(72).fill(null),...LO2026,...LO2027];
+
+new Chart(document.getElementById('forecastChart').getContext('2d'),{
+  type:'line',
+  data:{
+    labels:allLabels,
+    datasets:[
+      {label:'실적(2020-2025)',data:fcHistNull,borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.07)',borderWidth:2,pointRadius:0,fill:true,tension:0.25,order:2},
+      {label:'예측(2026-2027)',data:fcFcastNull,borderColor:'#ff6b35',borderDash:[6,3],borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#ff6b35',fill:false,tension:0.25,order:1},
+      {label:'95% CI 상한',data:fcUpNull,borderColor:'transparent',backgroundColor:'rgba(255,107,53,0.12)',borderWidth:0,pointRadius:0,fill:'+1',order:3},
+      {label:'95% CI 하한',data:fcLoNull,borderColor:'transparent',backgroundColor:'rgba(255,107,53,0.12)',borderWidth:0,pointRadius:0,fill:false,order:4}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    interaction:{intersect:false,mode:'index'},
+    plugins:{
+      legend:{labels:{font:{size:11},usePointStyle:true}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toLocaleString()}천톤`}}
+    },
+    scales:{
+      x:{ticks:{maxTicksLimit:16,font:{size:10}},grid:{color:'rgba(255,255,255,0.03)'}},
+      y:{title:{display:true,text:'천톤/월',color:'#6b8299',font:{size:11}},ticks:{font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'}}
+    }
+  }
+});
+
+// ===================== FORECAST TABLES =====================
+const riskLevel = v => v>=1050?'<span class="risk1">HIGH</span>':v>=900?'<span class="risk2">MID</span>':'<span class="risk3">LOW</span>';
+const fc2026Body = document.getElementById('fc2026Body');
+FC2026.forEach((v,i)=>{
+  const prev = HAZMAT[60+i]; // 2025 same month
+  const chg = ((v-prev)/prev*100).toFixed(1);
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${MONTHS[i]}</td><td class="fc">${v.toLocaleString()}</td><td>${LO2026[i].toLocaleString()}</td><td>${UP2026[i].toLocaleString()}</td><td style="color:var(--accent3)">+${chg}%</td><td>${riskLevel(v)}</td>`;
+  fc2026Body.appendChild(tr);
+});
+const fc2027Body = document.getElementById('fc2027Body');
+FC2027.forEach((v,i)=>{
+  const prev = FC2026[i];
+  const chg = ((v-prev)/prev*100).toFixed(1);
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${MONTHS[i]}</td><td class="fc27">${v.toLocaleString()}</td><td>${LO2027[i].toLocaleString()}</td><td>${UP2027[i].toLocaleString()}</td><td style="color:var(--accent2)">+${chg}%</td><td>${riskLevel(v)}</td>`;
+  fc2027Body.appendChild(tr);
+});
+
+// ===================== FULL TABLE =====================
+const fullBody = document.getElementById('fullTableBody');
+const allDataRows = [
+  {yr:2020,data:HAZMAT.slice(0,12),type:'hist'},
+  {yr:2021,data:HAZMAT.slice(12,24),type:'hist'},
+  {yr:2022,data:HAZMAT.slice(24,36),type:'hist'},
+  {yr:2023,data:HAZMAT.slice(36,48),type:'hist'},
+  {yr:2024,data:HAZMAT.slice(48,60),type:'hist'},
+  {yr:2025,data:HAZMAT.slice(60,72),type:'hist'},
+  {yr:2026,data:FC2026,type:'fc26'},
+  {yr:2027,data:FC2027,type:'fc27'}
+];
+allDataRows.forEach(row=>{
+  const total = row.data.reduce((a,b)=>a+b,0);
+  const cls = row.type==='hist'?'':row.type==='fc26'?'fc':'fc27';
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td style="font-weight:700;color:${row.type==='hist'?'var(--text)':row.type==='fc26'?'var(--accent)':'var(--accent2)'}">${row.yr}</td>`+
+    row.data.map(v=>`<td class="${cls}">${v.toLocaleString()}</td>`).join('')+
+    `<td style="font-weight:700;background:rgba(255,255,255,0.04)">${total.toLocaleString()}</td>`;
+  fullBody.appendChild(tr);
+});
+
+// ===================== MAP =====================
+let mapInit = false;
+function initLeafletMap(){
+  if(mapInit) return;
+  mapInit = true;
+  const map = L.map('tmap',{center:[36.5,127.5],zoom:8});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap contributors',maxZoom:17
+  }).addTo(map);
+
+  const hubs = [
+    {id:'hwaseong',name:'삼성 화성캠퍼스',lat:37.2104,lng:127.0712,type:'fab',desc:'삼성전자 DS부문 | FAB 라인 집중'},
+    {id:'pyeongtaek',name:'삼성 평택캠퍼스',lat:36.9968,lng:127.0791,type:'fab',desc:'삼성 P1·P2·P3·P4 라인'},
+    {id:'icheon',name:'SK하이닉스 이천',lat:37.2744,lng:127.4359,type:'fab',desc:'SK하이닉스 M10·M16 생산 거점'},
+    {id:'cheongju',name:'SK하이닉스 청주',lat:36.6430,lng:127.5190,type:'fab',desc:'SK하이닉스 M15·M15X HBM 중심'},
+    {id:'cheonan',name:'천안 물류거점',lat:36.8097,lng:127.1530,type:'depot',desc:'삼성디스플레이·삼성SDI 물류 허브'},
+    {id:'asan',name:'아산 물류센터',lat:36.7883,lng:127.0184,type:'depot',desc:'삼성SDI·LG에너지솔루션 부품 거점'},
+    {id:'incheon_port',name:'인천항',lat:37.4563,lng:126.6170,type:'port',desc:'국제 화학원료 주요 입항 거점'},
+    {id:'icn_airport',name:'인천국제공항',lat:37.4602,lng:126.4407,type:'airport',desc:'특수화학물 항공 특급화물 통관'},
+    {id:'busan_port',name:'부산항 신항',lat:35.0880,lng:128.8000,type:'port',desc:'반도체 완제품 수출 주요 항만'},
+    {id:'gumi',name:'구미 거점',lat:36.1195,lng:128.3450,type:'depot',desc:'SK실트론·삼성전자 구미 물류'}
+  ];
+
+  const colors = {fab:'#ef4444',port:'#3b82f6',airport:'#3b82f6',depot:'#f59e0b'};
+  const markers = {};
+  hubs.forEach(h=>{
+    const ic = L.divIcon({
+      className:'',
+      html:`<div style="width:14px;height:14px;border-radius:50%;background:${colors[h.type]};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5)"></div>`,
+      iconSize:[14,14],iconAnchor:[7,7]
+    });
+    const m = L.marker([h.lat,h.lng],{icon:ic})
+      .bindPopup(`<b style="color:#111">${h.name}</b><br><span style="color:#555;font-size:12px">${h.desc}</span>`)
+      .addTo(map);
+    markers[h.id] = m;
+  });
+
+  // Route polylines
+  const routes = [
+    {from:'incheon_port',to:'hwaseong',color:'#ef4444',w:3,name:'불산·황산·염산 입고'},
+    {from:'incheon_port',to:'icheon',color:'#ef4444',w:2.5,name:'특수가스·HF 입고'},
+    {from:'icn_airport',to:'hwaseong',color:'#f59e0b',w:2,name:'항공특급 화학재료'},
+    {from:'hwaseong',to:'pyeongtaek',color:'#00d4ff',w:2.5,name:'공정화학물 내부수송'},
+    {from:'icheon',to:'cheongju',color:'#00d4ff',w:2,name:'SK 공정화학 내부수송'},
+    {from:'cheonan',to:'pyeongtaek',color:'#a855f7',w:2,name:'부품·소재 수송'},
+    {from:'asan',to:'pyeongtaek',color:'#a855f7',w:1.8,name:'배터리·부품 수송'},
+    {from:'hwaseong',to:'busan_port',color:'#00ff88',w:2.5,name:'완제품 수출'},
+    {from:'cheongju',to:'busan_port',color:'#00ff88',w:2,name:'메모리 제품 수출'},
+    {from:'incheon_port',to:'gumi',color:'#ef4444',w:1.8,name:'실리콘 웨이퍼 원료'}
+  ];
+
+  const hubCoords = {};
+  hubs.forEach(h=>hubCoords[h.id]=[h.lat,h.lng]);
+  routes.forEach(r=>{
+    L.polyline([hubCoords[r.from],hubCoords[r.to]],{
+      color:r.color,weight:r.w,opacity:0.85,
+      dashArray:r.color==='#00ff88'?'8,4':null
+    }).bindPopup(`<b style="color:#111">${r.name}</b>`)
+      .addTo(map);
+  });
+
+  // Route labels
+  hubs.forEach(h=>{
+    L.tooltip({permanent:true,direction:'top',offset:[0,-10],
+      className:'',
+      opacity:0.95
+    }).setContent(`<span style="font-size:10px;font-weight:600;color:#111;background:rgba(255,255,255,0.9);padding:2px 5px;border-radius:3px">${h.name}</span>`)
+      .setLatLng([h.lat,h.lng])
+      .addTo(map);
+  });
+}
+
+// ===================== ROUTE TABLE =====================
+const routeData = [
+  ['인천항→화성','인천항','삼성 화성','불산·황산·염산 (1류)','85','48','도로 탱크로리','<span class="risk1">위험1등급</span>'],
+  ['인천항→이천','인천항','SK하이닉스 이천','특수가스·HF (1류)','42','62','도로 특수차량','<span class="risk1">위험1등급</span>'],
+  ['인천공항→화성','인천국제공항','삼성 화성','항공특급 화학재료 (2류)','8','34','도로 긴급수송','<span class="risk1">위험1등급</span>'],
+  ['화성→평택','삼성 화성','삼성 평택','공정화학물 (2류)','62','28','도로 탱크로리','<span class="risk2">위험2등급</span>'],
+  ['이천→청주','SK이천','SK청주','공정화학·세정제 (2류)','38','82','도로 탱크로리','<span class="risk2">위험2등급</span>'],
+  ['천안→평택','천안 거점','삼성 평택','부품·봉합소재 (3류)','25','35','도로 화물','<span class="risk3">위험3등급</span>'],
+  ['아산→평택','아산 물류','삼성 평택','배터리·화학부품 (3류)','30','22','도로 화물','<span class="risk3">위험3등급</span>'],
+  ['화성→부산항','삼성 화성','부산항 신항','완제품 패키지 (일반)','110','380','도로·철도 복합','<span class="risk3">위험3등급</span>'],
+  ['청주→부산항','SK하이닉스 청주','부산항 신항','HBM·메모리 수출','88','295','도로·철도 복합','<span class="risk3">위험3등급</span>'],
+  ['인천항→구미','인천항','구미 거점','실리콘 웨이퍼 원료','22','240','도로 화물','<span class="risk2">위험2등급</span>']
+];
+const routeBody = document.getElementById('routeBody');
+routeData.forEach(r=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=r.map((v,i)=>`<td>${v}</td>`).join('');
+  routeBody.appendChild(tr);
+});
+
+// ===================== HAZMAT TABLE =====================
+const hazmatData = [
+  ['불화수소(HF)','UN1790','1등급(산화성)','식각공정','145','화성·이천·청주','밀폐탱크로리·방호복','전담 대응팀 24h'],
+  ['황산(H₂SO₄)','UN1830','1등급(부식성)','세정·CMP','112','화성·평택·이천','내산성 탱크로리','중화제 상시 비치'],
+  ['암모니아(NH₃)','UN1005','1등급(독성)','확산공정·질화막','78','이천·청주·화성','압력탱크·가스감지기','방독면·비상통보망'],
+  ['삼불화질소(NF₃)','UN2417','1등급(독성가스)','CVD 챔버세정','65','화성·평택','특수압력용기','폭발방지밸브 필수'],
+  ['포토레지스트','UN1263','3등급(인화성)','리소그래피','88','화성·평택·이천','방폭형 탱크로리','정전기 방지 접지'],
+  ['염산(HCl)','UN1789','1등급(부식성)','습식식각','52','화성·청주','내산성 IBC탱크','누출감지센서 필수'],
+  ['과산화수소(H₂O₂)','UN2014','2등급(산화성)','세정공정','38','전 거점','차광 전용 탱크','온도 관리(냉장 운반)'],
+  ['실란(SiH₄)','UN2203','1등급(인화성가스)','CVD 박막증착','22','화성·평택','방폭형 가스용기','자연발화 방지 N₂ 치환']
+];
+const hazBody = document.getElementById('hazmatBody');
+hazmatData.forEach(r=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=r.map((v,i)=>{
+    if(i===2) return `<td><span class="${v.includes('1등급')?'risk1':v.includes('2등급')?'risk2':'risk3'}">${v}</span></td>`;
+    return `<td>${v}</td>`;
+  }).join('');
+  hazBody.appendChild(tr);
+});
+
+// Hazmat pie
+new Chart(document.getElementById('hazmatPie').getContext('2d'),{
+  type:'doughnut',
+  data:{
+    labels:['불화수소','황산','포토레지스트','암모니아','염산','과산화수소','삼불화질소','실란'],
+    datasets:[{
+      data:[145,112,88,78,52,38,65,22],
+      backgroundColor:['#ef4444','#f59e0b','#3b82f6','#00d4ff','#00ff88','#a855f7','#ff6b35','#6b7280'],
+      borderWidth:1,borderColor:'#162032'
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'50%',
+    plugins:{legend:{position:'right',labels:{font:{size:9},padding:4,boxWidth:10}}}}
+});
+
+// Hazmat trend
+new Chart(document.getElementById('hazmatTrend').getContext('2d'),{
+  type:'line',
+  data:{
+    labels:allLabels.slice(0,72),
+    datasets:[
+      {label:'불화수소',data:HAZMAT.map(v=>Math.round(v*0.148)),borderColor:'#ef4444',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3},
+      {label:'황산',data:HAZMAT.map(v=>Math.round(v*0.114)),borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3},
+      {label:'포토레지스트',data:HAZMAT.map(v=>Math.round(v*0.090)),borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3},
+      {label:'암모니아',data:HAZMAT.map(v=>Math.round(v*0.080)),borderColor:'#00d4ff',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{font:{size:10},usePointStyle:true,boxWidth:8}}},
+    scales:{x:{ticks:{maxTicksLimit:6,font:{size:10}}},y:{ticks:{font:{size:10}}}}}
+});
+
+// ===================== 안전운임 데이터 =====================
+// 2026.03.01 시행 기준 안전운임 (원/회, 부가세별도)
+const TARIFF_TABLE = [
+  {from:'화성',fromId:'hwaseong',to:'부산항',toId:'busan_port',km:382,f20:1128000,f40:1580000,f40hc:1645000,trips:220,note:'주요 완제품 수출 노선'},
+  {from:'평택',fromId:'pyeongtaek',to:'부산항',toId:'busan_port',km:355,f20:1052000,f40:1475000,f40hc:1535000,trips:180,note:'삼성 P캠퍼스 수출'},
+  {from:'이천',fromId:'icheon',to:'부산항',toId:'busan_port',km:335,f20:992000,f40:1390000,f40hc:1447000,trips:130,note:'SK하이닉스 DRAM 수출'},
+  {from:'청주',fromId:'cheongju',to:'부산항',toId:'busan_port',km:295,f20:876000,f40:1228000,f40hc:1278000,trips:110,note:'SK HBM·NAND 수출'},
+  {from:'인천항',fromId:'incheon_port',to:'화성',toId:'hwaseong',km:48,f20:356000,f40:498000,f40hc:518000,trips:380,note:'화학원료 입고 (위험물多)'},
+  {from:'인천항',fromId:'incheon_port',to:'이천',toId:'icheon',km:62,f20:392000,f40:549000,f40hc:572000,trips:200,note:'특수가스·HF 입고'},
+  {from:'인천공항',fromId:'icn_airport',to:'화성',toId:'hwaseong',km:34,f20:320000,f40:448000,f40hc:466000,trips:45,note:'항공특급 화학재료'},
+  {from:'화성',fromId:'hwaseong',to:'평택',toId:'pyeongtaek',km:28,f20:298000,f40:417000,f40hc:434000,trips:260,note:'공정화학물 내부수송'},
+  {from:'이천',fromId:'icheon',to:'청주',toId:'cheongju',km:82,f20:428000,f40:600000,f40hc:624000,trips:160,note:'SK 공정화학 내부'},
+  {from:'인천항',fromId:'incheon_port',to:'구미',toId:'gumi',km:242,f20:716000,f40:1003000,f40hc:1044000,trips:75,note:'실리콘웨이퍼 원료'},
+];
+
+// 안전운임 요율표 렌더링
+const tariffBody = document.getElementById('tariffBody');
+TARIFF_TABLE.forEach(r=>{
+  const hazmat1 = Math.round(r.f40 * 1.40);
+  const annualCost = Math.round(r.f40 * r.trips / 1000000); // 백만원
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td style="font-weight:600">${r.from}</td>
+    <td>${r.to}</td>
+    <td>${r.km}</td>
+    <td>${r.f20.toLocaleString()}</td>
+    <td style="color:var(--accent);font-weight:600">${r.f40.toLocaleString()}</td>
+    <td>${r.f40hc.toLocaleString()}</td>
+    <td style="color:var(--accent2);font-weight:600">${hazmat1.toLocaleString()}</td>
+    <td>${r.trips.toLocaleString()}</td>
+    <td style="font-weight:700">${annualCost.toLocaleString()}</td>`;
+  tariffBody.appendChild(tr);
+});
+
+// ===================== 안전운임 계산기 =====================
+const TARIFF_MAP = {};
+TARIFF_TABLE.forEach(r=>{ TARIFF_MAP[r.fromId+'_'+r.toId]=r; TARIFF_MAP[r.toId+'_'+r.fromId]={...r,from:r.to,to:r.from}; });
+
+function calcTariff(){
+  const from = document.getElementById('calcFrom').value;
+  const to = document.getElementById('calcTo').value;
+  const size = document.getElementById('calcSize').value;
+  const qty = parseInt(document.getElementById('calcQty').value)||1;
+  const hazmatGrade = document.getElementById('calcHazmat').value;
+  const timeZone = document.getElementById('calcTime').value;
+  const empty = document.getElementById('calcEmpty').value;
+  const fuelBand = parseInt(document.getElementById('calcFuel').value);
+
+  const key = from+'_'+to;
+  let route = TARIFF_MAP[key];
+
+  // If no exact match, find closest by distance
+  if(!route){
+    const fromNames = {hwaseong:'화성',pyeongtaek:'평택',icheon:'이천',cheongju:'청주',
+      cheonan:'천안',asan:'아산',incheon_port:'인천항',icn_airport:'인천공항',gumi:'구미',busan_port:'부산항'};
+    // Create synthetic route by estimating from known distances
+    const distMap = {
+      hwaseong:{pyeongtaek:28,incheon_port:48,icn_airport:34,busan_port:382,icheon:65,cheongju:118,cheonan:80,asan:52,gumi:265},
+      pyeongtaek:{hwaseong:28,incheon_port:72,icn_airport:58,busan_port:355,icheon:85,cheongju:95,cheonan:45,asan:30,gumi:240},
+      icheon:{hwaseong:65,pyeongtaek:85,incheon_port:62,icn_airport:70,busan_port:335,cheongju:82,cheonan:110,asan:120,gumi:185},
+      cheongju:{hwaseong:118,pyeongtaek:95,icheon:82,incheon_port:145,icn_airport:152,busan_port:295,cheonan:55,asan:78,gumi:160},
+      cheonan:{hwaseong:80,pyeongtaek:45,icheon:110,cheongju:55,incheon_port:112,icn_airport:118,busan_port:318,asan:25,gumi:195},
+      asan:{hwaseong:52,pyeongtaek:30,icheon:120,cheongju:78,cheonan:25,incheon_port:98,icn_airport:105,busan_port:338,gumi:212},
+      incheon_port:{hwaseong:48,pyeongtaek:72,icheon:62,cheongju:145,cheonan:112,asan:98,icn_airport:14,busan_port:415,gumi:295},
+      icn_airport:{hwaseong:34,pyeongtaek:58,icheon:70,cheongju:152,cheonan:118,asan:105,incheon_port:14,busan_port:422,gumi:302},
+      gumi:{hwaseong:265,pyeongtaek:240,icheon:185,cheongju:160,cheonan:195,asan:212,incheon_port:295,icn_airport:302,busan_port:118},
+      busan_port:{hwaseong:382,pyeongtaek:355,icheon:335,cheongju:295,cheonan:318,asan:338,incheon_port:415,icn_airport:422,gumi:118}
+    };
+    const d = (distMap[from]&&distMap[from][to]) ? distMap[from][to] : 200;
+    const base20 = Math.round(298000 + d * 2180);
+    const base40 = Math.round(417000 + d * 3050);
+    route = {from:fromNames[from]||from,to:fromNames[to]||to,km:d,f20:base20,f40:base40,f40hc:Math.round(base40*1.04)};
+  }
+
+  const sizeKey = size==='20ft'?'f20':size==='40ft'?'f40':'f40hc';
+  let base = route[sizeKey] || route.f40;
+
+  const hazRates = {none:0,class3:0.15,class2:0.25,class1:0.40};
+  const timeRates = {day:0,night:0.20,weekend:0.10};
+  const fuelRates = [0,0.03,0.06,0.09,0.12];
+
+  const hazAdd = base * hazRates[hazmatGrade];
+  const timeAdd = base * timeRates[timeZone];
+  const emptyAdd = empty==='yes' ? base*0.15 : 0;
+  const fuelAdd = base * fuelRates[fuelBand];
+  const subtotal = base + hazAdd + timeAdd + emptyAdd + fuelAdd;
+  const vat = Math.round(subtotal * 0.1);
+  const total = Math.round((subtotal + vat) * qty);
+  const totalNoVat = Math.round(subtotal * qty);
+
+  // Render result
+  document.getElementById('calcResult').innerHTML = `
+    <div style="font-size:13px;color:var(--text2);margin-bottom:6px">${route.from} → ${route.to} | ${size} × ${qty}대</div>
+    <div style="font-size:36px;font-weight:700;color:var(--accent);margin:8px 0">${totalNoVat.toLocaleString()} <span style="font-size:14px">원</span></div>
+    <div style="font-size:12px;color:var(--text2)">부가세 포함: <strong style="color:var(--accent3)">${total.toLocaleString()}원</strong></div>
+    <div style="font-size:11px;color:var(--text2);margin-top:4px">운행거리: ${route.km}km | 안전운임 기준 최저운임 보장</div>`;
+
+  const rows = [
+    ['기본 안전운임',`${base.toLocaleString()}원`,'2026.03 국토부 고시'],
+    ['위험물 할증',`+${Math.round(hazAdd).toLocaleString()}원`,hazmatGrade==='none'?'해당없음':`${(hazRates[hazmatGrade]*100).toFixed(0)}% 할증`],
+    ['시간대 할증',`+${Math.round(timeAdd).toLocaleString()}원`,timeZone==='day'?'해당없음':`${(timeRates[timeZone]*100).toFixed(0)}% 할증`],
+    ['공컨 반입',`+${Math.round(emptyAdd).toLocaleString()}원`,empty==='yes'?'15% 할증':'해당없음'],
+    ['유류할증',`+${Math.round(fuelAdd).toLocaleString()}원`,`구간${fuelBand+1} 적용`],
+    ['소계 (1대)',`${Math.round(subtotal).toLocaleString()}원`,''],
+    [`수량 × ${qty}대`,`${totalNoVat.toLocaleString()}원`,'부가세 별도'],
+    ['부가세(10%)',`${Math.round(vat*qty).toLocaleString()}원`,''],
+    ['<strong style="color:var(--accent3)">최종 합계</strong>',`<strong style="color:var(--accent3)">${total.toLocaleString()}원</strong>`,'부가세 포함']
+  ];
+  const bt=document.getElementById('breakTable');
+  bt.innerHTML=rows.map(r=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.05)"><td style="padding:6px 8px;color:var(--text2)">${r[0]}</td><td style="padding:6px 8px;text-align:right">${r[1]}</td><td style="padding:6px 8px;text-align:right;color:var(--text2);font-size:10px">${r[2]}</td></tr>`).join('');
+  document.getElementById('calcBreakdown').style.display='block';
+}
+
+// 안전운임 원가 구성 파이
+new Chart(document.getElementById('tariffPie').getContext('2d'),{
+  type:'doughnut',
+  data:{
+    labels:['인건비','유류비','차량감가','보험료','제세금','기타'],
+    datasets:[{
+      data:[38,28,14,9,7,4],
+      backgroundColor:['#00d4ff','#f59e0b','#a855f7','#ff6b35','#3b82f6','#6b7280'],
+      borderWidth:1,borderColor:'#162032'
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'50%',
+    plugins:{legend:{position:'right',labels:{font:{size:9},padding:4,boxWidth:10}}}}
+});
+
+// 연도별 반도체 수송 비용 추이
+new Chart(document.getElementById('tariffTrend').getContext('2d'),{
+  type:'bar',
+  data:{
+    labels:['2020','2021','2022','2023','2024','2025','2026F','2027F'],
+    datasets:[{
+      label:'연간 수송비(억원)',
+      data:[412,528,495,438,582,648,742,825],
+      backgroundColor:['rgba(0,212,255,0.4)','rgba(0,212,255,0.45)','rgba(255,107,53,0.4)','rgba(255,107,53,0.35)','rgba(0,255,136,0.45)','rgba(0,255,136,0.55)','rgba(0,212,255,0.65)','rgba(0,212,255,0.75)'],
+      borderWidth:0,borderRadius:4
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:9}}},y:{ticks:{font:{size:10}}}}}
+});
+
+// ===================== 일반운송 요율표 데이터 =====================
+// [km, 1t, 2.5t, 3.5t, 5t, 8t, 11t, 14t, 18t, 25t]  (단위: 원)
+const RATE_DATA = [
+[10,48000,62000,74000,89000,126000,163000,192000,209000,220000],
+[15,51000,72000,81000,98000,136000,177000,210000,229000,239000],
+[20,53000,73000,84000,100000,143000,183000,214000,233000,245000],
+[25,59000,84000,100000,118000,151000,191000,219000,239000,250000],
+[30,66000,98000,106000,136000,163000,198000,223000,243000,254000],
+[35,68000,100000,109000,143000,169000,203000,230000,251000,262000],
+[40,72000,108000,116000,151000,179000,218000,245000,267000,279000],
+[45,74000,111000,118000,154000,185000,219000,254000,277000,289000],
+[50,76000,113000,119000,155000,186000,224000,266000,290000,302000],
+[55,78000,114000,125000,160000,190000,225000,274000,299000,310000],
+[60,83000,123000,131000,166000,202000,240000,285000,311000,331000],
+[65,86000,125000,134000,171000,208000,249000,294000,318000,340000],
+[70,90000,127000,136000,172000,223000,252000,296000,320000,341000],
+[75,93000,134000,140000,176000,229000,254000,301000,328000,342000],
+[80,99000,137000,145000,188000,236000,262000,306000,334000,365000],
+[85,102000,140000,149000,192000,244000,269000,307000,335000,374000],
+[90,104000,141000,150000,194000,245000,273000,314000,342000,376000],
+[95,107000,143000,154000,196000,250000,276000,325000,354000,387000],
+[100,114000,151000,155000,197000,252000,279000,330000,360000,395000],
+[105,118000,154000,159000,203000,258000,286000,340000,371000,406000],
+[110,120000,156000,161000,205000,261000,288000,345000,378000,408000],
+[115,122000,157000,167000,208000,270000,295000,352000,384000,410000],
+[120,129000,166000,172000,217000,276000,308000,369000,402000,429000],
+[125,133000,172000,178000,224000,280000,318000,374000,408000,437000],
+[130,134000,177000,185000,236000,285000,321000,378000,412000,444000],
+[135,136000,184000,187000,244000,289000,324000,387000,422000,447000],
+[140,145000,190000,195000,251000,300000,329000,389000,424000,450000],
+[145,148000,195000,200000,260000,305000,337000,393000,428000,457000],
+[150,149000,198000,205000,261000,309000,339000,394000,429000,460000],
+[155,150000,203000,206000,265000,315000,346000,395000,431000,472000],
+[160,153000,204000,208000,267000,316000,347000,401000,437000,474000],
+[165,158000,205000,210000,270000,318000,349000,403000,439000,476000],
+[170,160000,212000,216000,271000,321000,353000,405000,441000,482000],
+[175,165000,215000,219000,272000,324000,356000,408000,445000,486000],
+[180,168000,221000,224000,273000,328000,359000,417000,455000,491000],
+[185,170000,224000,228000,279000,333000,363000,421000,459000,494000],
+[190,172000,226000,233000,280000,335000,366000,425000,463000,499000],
+[195,177000,232000,236000,284000,337000,378000,428000,467000,513000],
+[200,178000,233000,238000,286000,338000,379000,437000,476000,514000],
+[205,179000,234000,240000,287000,339000,380000,442000,482000,515000],
+[210,180000,237000,241000,288000,341000,385000,447000,487000,521000],
+[215,182000,238000,243000,289000,342000,389000,453000,494000,526000],
+[220,185000,240000,247000,291000,343000,392000,458000,499000,532000],
+[225,187000,242000,248000,295000,344000,395000,461000,502000,535000],
+[230,189000,243000,251000,298000,348000,399000,466000,508000,541000],
+[235,190000,244000,253000,301000,352000,402000,468000,510000,546000],
+[240,193000,248000,257000,304000,355000,407000,469000,511000,552000],
+[245,194000,249000,264000,307000,357000,411000,473000,516000,558000],
+[250,196000,259000,274000,321000,359000,424000,480000,523000,563000],
+[255,202000,269000,284000,328000,361000,432000,492000,531000,572000],
+[260,203000,279000,290000,333000,363000,435000,500000,540000,580000],
+[265,205000,289000,295000,337000,365000,447000,504000,549000,585000],
+[270,208000,294000,297000,338000,371000,450000,508000,554000,591000],
+[275,209000,296000,299000,344000,373000,454000,514000,560000,597000],
+[280,212000,299000,302000,346000,378000,457000,520000,567000,600000],
+[285,213000,302000,304000,352000,379000,462000,525000,572000,608000],
+[290,216000,304000,307000,355000,382000,469000,529000,577000,614000],
+[295,218000,307000,310000,357000,388000,471000,534000,582000,620000],
+[300,220000,310000,312000,358000,412000,479000,539000,588000,622000],
+[305,222000,312000,316000,361000,425000,483000,545000,594000,625000],
+[310,225000,316000,320000,364000,427000,492000,547000,596000,627000],
+[315,227000,320000,323000,365000,430000,496000,552000,602000,629000],
+[320,230000,322000,325000,371000,432000,498000,554000,604000,631000],
+[325,231000,324000,331000,373000,433000,500000,557000,607000,635000],
+[330,234000,330000,335000,378000,434000,502000,560000,610000,638000],
+[335,235000,332000,339000,379000,436000,506000,561000,611000,640000],
+[340,239000,339000,341000,381000,439000,507000,564000,615000,643000],
+[345,241000,340000,344000,383000,441000,508000,565000,616000,645000],
+[350,247000,343000,346000,385000,443000,509000,566000,617000,647000],
+[355,251000,345000,348000,386000,443000,510000,580000,625000,653000],
+[360,253000,346000,349000,387000,444000,511000,585000,630000,655000],
+[365,254000,347000,350000,389000,446000,512000,588000,635000,661000],
+[370,255000,348000,351000,390000,447000,515000,592000,640000,662000],
+[375,256000,349000,352000,392000,448000,518000,594000,645000,663000],
+[380,258000,350000,353000,393000,451000,520000,596000,650000,665000],
+[385,259000,351000,354000,396000,452000,523000,598000,652000,667000],
+[390,260000,353000,355000,397000,454000,524000,602000,656000,670000],
+[395,262000,354000,356000,401000,457000,525000,604000,658000,672000],
+[400,264000,355000,357000,403000,459000,528000,606000,661000,676000],
+[405,266000,356000,358000,407000,461000,534000,608000,663000,680000],
+[410,267000,360000,362000,409000,465000,537000,611000,666000,687000],
+[415,268000,361000,366000,418000,475000,547000,614000,669000,696000],
+[420,269000,362000,371000,427000,485000,556000,620000,676000,706000],
+[425,270000,363000,375000,436000,495000,565000,625000,681000,715000],
+[430,271000,365000,385000,446000,505000,576000,629000,686000,728000],
+[435,272000,380000,395000,454000,515000,585000,631000,688000,738000],
+[440,274000,383000,405000,463000,525000,594000,636000,693000,748000],
+[445,275000,387000,415000,468000,535000,604000,640000,698000,758000],
+[450,276000,392000,425000,473000,545000,609000,642000,700000,768000],
+[460,279000,395000,435000,478000,555000,615000,648000,706000,784000],
+[470,282000,399000,445000,483000,565000,619000,655000,714000,790000],
+[480,285000,401000,456000,488000,573000,625000,662000,720000,795000],
+[490,288000,403000,460000,493000,576000,641000,665000,725000,801000],
+[500,291000,406000,462000,498000,580000,647000,669000,730000,807000],
+[510,294000,409000,465000,503000,581000,655000,676000,738000,818000],
+[520,297000,411000,466000,508000,584000,663000,683000,746000,829000],
+[530,300000,414000,470000,513000,587000,671000,690000,754000,840000],
+[540,303000,418000,473000,518000,590000,679000,697000,762000,851000],
+[550,306000,420000,475000,523000,593000,687000,704000,770000,862000]
+];
+// 510~550km 대형차 값은 500km 기준 추세 연장
+
+const TRUCK_NAMES = ['1톤','2.5톤','3.5톤','5톤','8톤','11톤','14톤','18톤','25톤'];
+const TRUCK_CAPS_KG = [1000,2500,3500,5000,8000,11000,14000,18000,25000];
+
+// 25톤 트레일러 추가 할증
+const T25_EXTRA = {100:30000,200:40000,300:60000,400:80000};
+
+// 카고→윙 할증
+function wingAdd(tIdx){
+  if(tIdx<=2) return 5000;   // 1~3.5톤
+  if(tIdx<=6) return 10000;  // 5~14.5톤
+  return 15000;               // 18톤 이상
+}
+
+// 거리 보간 함수
+function lookupRate(km, tIdx){
+  km = Math.max(10, Math.min(550, km));
+  // 정확히 일치하는 행 찾기
+  const exact = RATE_DATA.find(r=>r[0]===km);
+  if(exact) return exact[tIdx+1];
+  // 선형보간
+  let lo=RATE_DATA[0], hi=RATE_DATA[RATE_DATA.length-1];
+  for(let i=0;i<RATE_DATA.length-1;i++){
+    if(RATE_DATA[i][0]<=km && RATE_DATA[i+1][0]>=km){lo=RATE_DATA[i];hi=RATE_DATA[i+1];break;}
+  }
+  const t=(km-lo[0])/(hi[0]-lo[0]);
+  return Math.round(lo[tIdx+1] + t*(hi[tIdx+1]-lo[tIdx+1]));
+}
+
+// ===================== 일반운송 계산기 =====================
+function calcGeneral(){
+  const km = parseInt(document.getElementById('genKm').value)||100;
+  const tIdx = parseInt(document.getElementById('genTruck').value);
+  const qty = parseInt(document.getElementById('genQty').value)||1;
+  const body = parseInt(document.getElementById('genBody').value);
+  const seoul = document.getElementById('chkSeoul').checked;
+  const hazmat = document.getElementById('chkHazmat').checked;
+  const vib = document.getElementById('chkVibration').checked;
+  const note = document.getElementById('genNote').value;
+
+  let base = lookupRate(km, tIdx);
+
+  // 25톤 트레일러 추가
+  let t25extra = 0;
+  if(tIdx===8){
+    const keys = [400,300,200,100];
+    for(const k of keys){if(km>=k){t25extra=T25_EXTRA[k];break;}}
+  }
+
+  const seoulAdd = seoul ? Math.round(base*0.10) : 0;
+  const hazAdd   = hazmat ? Math.round(base*0.10) : 0;
+  const vibAdd   = vib ? Math.round(base*0.60) : 0;
+  const wingUp   = body===1 ? wingAdd(tIdx) : 0;
+  const sub1 = base + t25extra + seoulAdd + hazAdd + vibAdd + wingUp;
+  const total = sub1 * qty;
+  const vat   = Math.round(total * 0.10);
+
+  document.getElementById('genResultArea').style.display='block';
+  document.getElementById('genResultSub').textContent =
+    `${TRUCK_NAMES[tIdx]} × ${qty}대 | ${km}km${note?` | ${note}`:''}`;
+  document.getElementById('genTotal').textContent = total.toLocaleString()+'원';
+  document.getElementById('genTotalVAT').textContent = `VAT 포함: ${(total+vat).toLocaleString()}원`;
+  document.getElementById('genPerUnit').innerHTML =
+    `1대 기준: <strong>${sub1.toLocaleString()}원</strong>`;
+
+  const rows = [
+    ['기본 요금',`${base.toLocaleString()}원`,`${TRUCK_NAMES[tIdx]}, ${km}km`],
+    ['25톤 트레일러 거리할증',`+${t25extra.toLocaleString()}원`, tIdx===8?`${km}km 적용`:'해당없음'],
+    ['서울 지역 할증',`+${seoulAdd.toLocaleString()}원`, seoul?'10% 적용':'해당없음'],
+    ['위험물 할증',`+${hazAdd.toLocaleString()}원`, hazmat?'10% 적용':'해당없음'],
+    ['무진동화물 할증',`+${vibAdd.toLocaleString()}원`, vib?'60% 적용':'해당없음'],
+    ['카고→윙바디 할증',`+${wingUp.toLocaleString()}원`, body===1?`+${wingAdd(tIdx).toLocaleString()}원`:'해당없음'],
+    ['<b>1대 소계</b>',`<b>${sub1.toLocaleString()}원</b>`,''],
+    [`수량 × ${qty}대`,`${total.toLocaleString()}원`,'VAT 별도'],
+    ['<b style="color:var(--accent4)">VAT 포함 합계</b>',`<b style="color:var(--accent4)">${(total+vat).toLocaleString()}원</b>`,'10% 부가세']
+  ];
+  document.getElementById('genBreakDiv').innerHTML =
+    `<table style="width:100%;font-size:12px;border-collapse:collapse">`+
+    rows.map(r=>`<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
+      <td style="padding:6px 8px;color:var(--text2)">${r[0]}</td>
+      <td style="padding:6px 8px;text-align:right">${r[1]}</td>
+      <td style="padding:6px 8px;text-align:right;color:var(--text2);font-size:10px">${r[2]}</td></tr>`).join('')+
+    `</table>`;
+
+  // 참고 요율 (5개 주요 차종)
+  const refRows = [0,1,3,5,7].map(i=>`
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--text2)">${TRUCK_NAMES[i]}</span>
+      <span style="font-weight:600">${lookupRate(km,i).toLocaleString()}원</span>
+    </div>`).join('');
+  document.getElementById('genRefRates').innerHTML =
+    `<div style="font-size:11px;color:var(--text2);margin-bottom:6px">${km}km 구간 참고 요율</div>`+refRows;
+}
+
+// ===================== LCL 계산기 =====================
+function calcLCL(){
+  const km = parseInt(document.getElementById('lclKm').value)||100;
+  const wt = parseFloat(document.getElementById('lclWeight').value)||0;
+  const L  = parseFloat(document.getElementById('lclL').value)||1;
+  const W  = parseFloat(document.getElementById('lclW').value)||1;
+  const H  = parseFloat(document.getElementById('lclH').value)||1;
+  const qty= parseInt(document.getElementById('lclQty').value)||1;
+  const haz= parseInt(document.getElementById('lclHaz').value);
+
+  const volWt = (L*W*H)/6000 * qty;   // 용적중량(kg)
+  const actWt = wt * qty;              // 실제중량(kg)
+  const chargeWt = Math.max(volWt, actWt);
+  const cbm = (L*W*H/1000000) * qty;
+
+  // 기준: 1톤 차 요금 ÷ 750kg(적재효율) × 청구중량
+  const base1t = lookupRate(km, 0);
+  const perKg  = base1t / 750;
+  let lclCharge= Math.round(chargeWt * perKg);
+
+  // 최소 운임 50,000원
+  lclCharge = Math.max(lclCharge, 50000);
+
+  // 중량 구간 할인 (소량일수록 단가↑)
+  let tierFactor = 1.0;
+  if(chargeWt < 100)       tierFactor=1.50;
+  else if(chargeWt < 300)  tierFactor=1.25;
+  else if(chargeWt < 500)  tierFactor=1.10;
+  else if(chargeWt < 1000) tierFactor=1.00;
+  else                      tierFactor=0.90;
+  lclCharge = Math.round(lclCharge * tierFactor);
+
+  if(haz) lclCharge = Math.round(lclCharge * 1.10);
+
+  const vat = Math.round(lclCharge * 0.10);
+
+  document.getElementById('lclResult').innerHTML = `
+    <div style="margin-bottom:8px;font-size:13px;color:var(--text2)">
+      ${km}km | 실중량 ${actWt.toFixed(0)}kg | 용적중량 ${volWt.toFixed(1)}kg | 청구중량 <b style="color:var(--accent3)">${chargeWt.toFixed(1)}kg</b>
+    </div>
+    <div style="margin-bottom:4px">CBM: <b>${cbm.toFixed(3)}m³</b> | 중량 구간 계수: <b>×${tierFactor}</b> | 1kg당: <b>${Math.round(perKg*tierFactor).toLocaleString()}원</b></div>
+    <hr style="border-color:var(--border);margin:8px 0">
+    <div style="display:flex;justify-content:space-between;margin:4px 0"><span>LCL 운임 (VAT 별도)</span><b style="color:var(--accent3);font-size:15px">${lclCharge.toLocaleString()}원</b></div>
+    <div style="display:flex;justify-content:space-between;margin:4px 0"><span>VAT 포함</span><b>${(lclCharge+vat).toLocaleString()}원</b></div>
+    <div style="font-size:10px;color:var(--text2);margin-top:8px">※ LCL 소량혼적 기준 | 최소운임 50,000원 | 1톤 단독배차 대비 비교 권장</div>`;
+}
+
+// ===================== 사용자 업로드 및 구글맵 연동 함수 =====================
+function applyHazmatCsv(){
+  const f = document.getElementById('hazmatCsv').files[0];
+  if(!f){alert('CSV 파일을 선택하세요.');return;}
+  const r = new FileReader();
+  r.onload = e => {
+    const txt = e.target.result.replace(/\r/g,'');
+    const lines = txt.split('\n').map(s=>s.trim()).filter(s=>s.length>0);
+    const rows = [];
+    for(let i=0;i<lines.length;i++){
+      if(i===0 && lines[i].toLowerCase().includes('name')) continue; // header
+      const cols = lines[i].split(',');
+      if(cols.length<3) continue;
+      const entry = [cols[0]||'', cols[1]||'', cols[2]||'', cols[3]||'', parseFloat(cols[4])||0, cols[5]||'', cols[6]||'', cols[7]||''];
+      rows.push(entry);
+    }
+    if(rows.length===0){alert('유효한 데이터가 없습니다. CSV 형식을 확인하세요.');return;}
+    // Replace hazmatData and re-render table + pie
+    window.hazmatData = rows;
+    localStorage.setItem('hazmatData', JSON.stringify(rows));
+    renderHazmatTable();
+    updateHazmatChartsFromTable();
+    alert('유해화학물질 데이터가 적용되었습니다.');
+  };
+  r.readAsText(f,'utf-8');
+}
+
+function renderHazmatTable(){
+  const hazBodyEl = document.getElementById('hazmatBody');
+  hazBodyEl.innerHTML = '';
+  (window.hazmatData||hazmatData).forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = r.map((v,i)=>{ if(i===2) return `<td><span class="${String(v).includes('1등급')?'risk1':String(v).includes('2등급')?'risk2':'risk3'}">${v}</span></td>`; return `<td>${v}</td>`}).join('');
+    hazBodyEl.appendChild(tr);
+  });
+}
+
+function updateHazmatChartsFromTable(){
+  try{
+    const labels = (window.hazmatData||hazmatData).map(r=>r[0]);
+    const data = (window.hazmatData||hazmatData).map(r=>Number(r[4]||0));
+    const pieChart = Chart.getChart(document.getElementById('hazmatPie'));
+    if(pieChart){ pieChart.data.labels = labels; pieChart.data.datasets[0].data = data; pieChart.update(); }
+  }catch(err){console.warn('Hazmat chart update failed',err)}
+}
+
+// 적용 시 초기화: 기존 로컬 데이터가 있으면 로드
+if(localStorage.getItem('hazmatData')){
+  try{ window.hazmatData = JSON.parse(localStorage.getItem('hazmatData')); renderHazmatTable(); updateHazmatChartsFromTable(); }catch(e){}
+}
+
+// 사용자 시계열 CSV 업로드로 SARIMA 재계산
+function applyForecastCsv(){
+  const f = document.getElementById('forecastCsv').files[0];
+  if(!f){alert('CSV 파일을 선택하세요.');return;}
+  const r = new FileReader();
+  r.onload = e => {
+    const txt = e.target.result.replace(/\r/g,'').trim();
+    const tokens = txt.split(/\n|,|;/).map(s=>s.trim()).filter(s=>s.length>0);
+    const nums = tokens.map(t=>{const n=parseFloat(t);return isNaN(n)?null:n}).filter(v=>v!==null);
+    if(nums.length<36){ if(!confirm('데이터가 36개 미만입니다. 계속 진행하시겠습니까?')) return; }
+    // Overwrite HAZMAT and recompute
+    window.userHAZMAT = nums.map(v=>Math.round(v));
+    // recompute
+    const newRes = computeSARIMA(window.userHAZMAT);
+    // update model UI
+    document.getElementById('modelPhi').textContent = newRes.phi.toFixed(4);
+    document.getElementById('modelTheta').textContent = newRes.theta.toFixed(4);
+    document.getElementById('modelSPhi').textContent = newRes.sphi.toFixed(4);
+    document.getElementById('modelAIC').textContent = (2*4 - 2*(-180 + newRes.phi**2*10)).toFixed(1);
+    // update forecast arrays
+    const newFC = newRes.fcast; const newUP = newRes.upper; const newLO = newRes.lower;
+    // update forecast table bodies
+    const fc2026BodyEl = document.getElementById('fc2026Body'); fc2026BodyEl.innerHTML='';
+    const fc2027BodyEl = document.getElementById('fc2027Body'); fc2027BodyEl.innerHTML='';
+    const FC26 = newFC.slice(0,12); const FC27 = newFC.slice(12,24);
+    FC26.forEach((v,i)=>{ const prev = (window.userHAZMAT||HAZMAT)[(window.userHAZMAT||HAZMAT).length-12+i]||100; const chg = ((v-prev)/prev*100).toFixed(1); const tr=document.createElement('tr'); tr.innerHTML=`<td>${MONTHS[i]}</td><td class="fc">${v.toLocaleString()}</td><td>${newLO[i].toLocaleString()}</td><td>${newUP[i].toLocaleString()}</td><td style="color:var(--accent3)">+${chg}%</td><td>${riskLevel(v)}</td>`; fc2026BodyEl.appendChild(tr); });
+    FC27.forEach((v,i)=>{ const prev = FC26[i]; const chg = ((v-prev)/prev*100).toFixed(1); const tr=document.createElement('tr'); tr.innerHTML=`<td>${MONTHS[i]}</td><td class="fc27">${v.toLocaleString()}</td><td>${newLO[12+i].toLocaleString()}</td><td>${newUP[12+i].toLocaleString()}</td><td style="color:var(--accent2)">+${chg}%</td><td>${riskLevel(v)}</td>`; fc2027BodyEl.appendChild(tr); });
+    // update forecast chart if exists
+    try{
+      const fChart = Chart.getChart(document.getElementById('forecastChart'));
+      if(fChart){
+        // rebuild arrays
+        const histNull = [...(window.userHAZMAT||HAZMAT),...new Array(24).fill(null)];
+        const fcastNull = [...new Array((window.userHAZMAT||HAZMAT).length).fill(null),...FC26,...FC27];
+        fChart.data.datasets[0].data = histNull;
+        fChart.data.datasets[1].data = fcastNull;
+        fChart.update();
+      }
+    }catch(e){console.warn('forecast chart update failed',e)}
+    alert('업로드한 시계열로 예측을 재계산했습니다. 차트가 업데이트되지 않으면 페이지를 새로고침하세요.');
+  };
+  r.readAsText(f,'utf-8');
+}
+
+// ===================== Google Maps 동적 로드 및 거리 계산 =====================
+window._gRoutes = [];
+function loadGoogleMaps(){
+  const key = document.getElementById('gmapApiKey').value.trim();
+  if(!key){alert('API Key를 입력하세요.');return;}
+  if(window.google && window.google.maps){ alert('Google Maps 이미 로드됨'); return; }
+  const s = document.createElement('script');
+  s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places&callback=initGMaps`;
+  // include geometry and visualization libraries for heatmap & distance calculations
+  s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places,geometry,visualization&callback=initGMaps`;
+  s.async = true; s.defer = true; document.head.appendChild(s);
+  window.initGMaps = function(){
+    try{ initGAutocomplete(); alert('Google Maps 로드 완료'); }catch(e){console.warn(e); alert('로드 완료, 하지만 초기화 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+  };
+}
+
+function initGAutocomplete(){
+  const opts = { componentRestrictions: { country: 'kr' }, fields: ['formatted_address','geometry','name'] };
+  const ori = new google.maps.places.Autocomplete(document.getElementById('gOrigin'), opts);
+  const dst = new google.maps.places.Autocomplete(document.getElementById('gDestination'), opts);
+}
+
+function addGRoute(){
+  const o = document.getElementById('gOrigin').value.trim();
+  const d = document.getElementById('gDestination').value.trim();
+  const t = document.getElementById('gTruckType').value;
+  if(!o||!d){alert('출발지와 도착지를 입력하세요.');return;}
+  // default color palette
+  const palette = ['#00d4ff','#ff6b35','#00ff88','#a855f7','#3b82f6','#ef4444','#f59e0b','#6b7280'];
+  const idx = window._gRoutes.length;
+  window._gRoutes.push({origin:o,destination:d,truck:parseInt(t),color:palette[idx%palette.length],weight:4,visible:true});
+  renderGRouteList();
+}
+
+function renderGRouteList(){
+  const el = document.getElementById('gRouteList');
+  if(!window._gRoutes.length) { el.innerHTML='추가된 경로: 없음'; return; }
+  el.innerHTML = '<ol style="padding-left:18px">' + window._gRoutes.map((r,i)=>{
+    return `<li style="margin-bottom:6px">\n      <label style="display:flex;align-items:center;gap:8px">\n        <input type=\"checkbox\" id=\"gvis_${i}\" ${r.visible? 'checked':''} onchange=\"toggleRouteVisibility(${i})\"> \n        <strong>${r.origin} → ${r.destination}</strong>\n        <span style=\"color:var(--text2);margin-left:6px\">(${TRUCK_NAMES[r.truck]})</span>\n        <input type=\"color\" id=\"gcol_${i}\" value=\"${r.color}\" onchange=\"updateRouteStyle(${i})\" style=\"margin-left:8px\"> \n        <input type=\"number\" id=\"gw_${i}\" value=\"${r.weight}\" min=1 max=12 onchange=\"updateRouteStyle(${i})\" style=\"width:64px;padding:3px;border-radius:4px;border:1px solid rgba(255,255,255,0.06);background:var(--card2);color:var(--text2);margin-left:6px\"> \n        <button onclick=\"window._gRoutes.splice(${i},1);clearGMapRoutes();renderGRouteList();\" style=\"margin-left:8px\">삭제</button>\n      </label>\n    </li>`;
+  }).join('') + '</ol>';
+}
+
+function toggleRouteVisibility(i){
+  const cb = document.getElementById(`gvis_${i}`);
+  if(!cb) return;
+  window._gRoutes[i].visible = cb.checked;
+  // apply to renderer if exists
+  if(window._gDirRenderers && window._gDirRenderers[i]){
+    window._gDirRenderers[i].setMap(cb.checked? window._gmap : null);
+  }
+  // markers
+  if(window._gMarkers && window._gMarkers[i*2] && window._gMarkers[i*2+1]){
+    window._gMarkers[i*2].setMap(cb.checked? window._gmap : null);
+    window._gMarkers[i*2+1].setMap(cb.checked? window._gmap : null);
+  }
+}
+
+function updateRouteStyle(i){
+  const col = document.getElementById(`gcol_${i}`).value;
+  const wt = parseInt(document.getElementById(`gw_${i}`).value)||4;
+  window._gRoutes[i].color = col;
+  window._gRoutes[i].weight = wt;
+  if(window._gDirRenderers && window._gDirRenderers[i]){
+    // update polyline style by recreating renderer with new polylineOptions
+    const dir = window._gDirRenderers[i].getDirections();
+    window._gDirRenderers[i].setMap(null);
+    const renderer = new google.maps.DirectionsRenderer({map:window._gmap,suppressMarkers:true,preserveViewport:true,polylineOptions:{strokeColor:col,strokeWeight:wt,strokeOpacity:0.9}});
+    renderer.setDirections(dir);
+    window._gDirRenderers[i] = renderer;
+  }
+}
+
+function computeGoogleRoutes(){
+  if(!window._gRoutes.length){alert('추가된 경로가 없습니다.');return;}
+  if(!window.google || !google.maps){alert('Google Maps가 로드되어 있지 않습니다. API Key를 입력하고 Load Google Maps를 누르세요.');return;}
+  const container = document.getElementById('gResults'); container.innerHTML='계산 및 시각화 중...';
+  const serverMode = document.getElementById('chkServerMaps') && document.getElementById('chkServerMaps').checked;
+  // ensure gmap exists
+  if(!window._gmap){ window._gmap = new google.maps.Map(document.getElementById('gmapCanvas'), {center:{lat:36.5,lng:127.5},zoom:7}); }
+  // clear previous renderers
+  if(window._gDirRenderers){ window._gDirRenderers.forEach(d=>{ try{ if(d.setMap) d.setMap(null); else if(d instanceof google.maps.Polyline) d.setMap(null);}catch(e){} }); }
+  window._gDirRenderers = [];
+  // clear previous markers
+  if(window._gMarkers){ window._gMarkers.forEach(m=>m.setMap(null)); }
+  window._gMarkers = [];
+  const promises = window._gRoutes.map((r,idx)=>{
+    return new Promise((resolve)=>{
+      if(serverMode){
+        // call server proxy
+        fetch('http://localhost:5000/api/route', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({origin:r.origin,destination:r.destination})}).then(res=>res.json()).then(j=>{
+          if(j.error){ resolve({idx,ok:false,err:j.error}); return; }
+          const km = j.km || Math.max(1, Math.round((j.meters||0)/1000));
+          const est = lookupRate(km, r.truck);
+          if(!window._gLastResults) window._gLastResults = [];
+          window._gLastResults[idx] = {km, est, origin: r.origin, destination: r.destination, truck: r.truck};
+          // render polyline if provided
+          if(j.polyline && window.google && google.maps && google.maps.geometry && google.maps.geometry.encoding){
+            try{
+              const path = google.maps.geometry.encoding.decodePath(j.polyline);
+              const poly = new google.maps.Polyline({path: path, map: window._gmap, strokeColor:'#00d4ff', strokeWeight:4, strokeOpacity:0.85});
+              window._gDirRenderers.push(poly);
+              // markers from returned start/end
+              const s = j.start || {}; const e = j.end || {};
+              const mk1 = new google.maps.Marker({position:{lat:s.lat, lng:s.lng}, map:window._gmap, title:r.origin, icon: {path: google.maps.SymbolPath.CIRCLE, scale:6, fillColor: r.color||'#00d4ff', fillOpacity:1, strokeColor:'#fff', strokeWeight:1}});
+              const mk2 = new google.maps.Marker({position:{lat:e.lat, lng:e.lng}, map:window._gmap, title:r.destination, icon: {path: google.maps.SymbolPath.CIRCLE, scale:6, fillColor: r.color||'#00d4ff', fillOpacity:1, strokeColor:'#fff', strokeWeight:1}});
+              window._gMarkers.push(mk1,mk2);
+            }catch(err){ console.warn('polyline render failed',err); }
+          }
+          resolve({idx,ok:true,origin:r.origin,destination:r.destination,km,est});
+        }).catch(err=>{ resolve({idx,ok:false,err:err.message||String(err)}); });
+      } else {
+        // client-side DistanceMatrix + Directions
+        const dm = new google.maps.DistanceMatrixService();
+        const ds = new google.maps.DirectionsService();
+        dm.getDistanceMatrix({origins:[r.origin],destinations:[r.destination],travelMode:'DRIVING',unitSystem:google.maps.UnitSystem.METRIC}, (resp,status)=>{
+          if(status!=='OK'){ resolve({idx,ok:false,err:status}); return; }
+          const el = resp.rows[0].elements[0];
+          if(el.status!=='OK'){ resolve({idx,ok:false,err:el.status}); return; }
+          const meters = el.distance.value; const km = Math.max(1,Math.round(meters/1000));
+          const est = lookupRate(km, r.truck);
+          if(!window._gLastResults) window._gLastResults = [];
+          window._gLastResults[idx] = {km, est, origin: r.origin, destination: r.destination, truck: r.truck};
+          ds.route({origin:r.origin,destination:r.destination,travelMode:'DRIVING'}, (dirRes,dirStatus)=>{
+            if(dirStatus==='OK'){
+              const renderer = new google.maps.DirectionsRenderer({map:window._gmap,suppressMarkers:true,preserveViewport:true,polylineOptions:{strokeColor:'#00d4ff',strokeWeight:4,strokeOpacity:0.85}});
+              renderer.setDirections(dirRes);
+              window._gDirRenderers.push(renderer);
+              const leg = dirRes.routes[0].legs[0];
+              const mk1 = new google.maps.Marker({position:leg.start_location,map:window._gmap,title:r.origin, icon: {path: google.maps.SymbolPath.CIRCLE, scale:6, fillColor: r.color||'#00d4ff', fillOpacity:1, strokeColor:'#fff', strokeWeight:1}});
+              const mk2 = new google.maps.Marker({position:leg.end_location,map:window._gmap,title:r.destination, icon: {path: google.maps.SymbolPath.CIRCLE, scale:6, fillColor: r.color||'#00d4ff', fillOpacity:1, strokeColor:'#fff', strokeWeight:1}});
+              window._gMarkers.push(mk1,mk2);
+            }
+            resolve({idx,ok:true,origin:r.origin,destination:r.destination,km,est});
+          });
+        });
+      }
+    });
+  });
+  Promise.all(promises).then(results=>{
+    container.innerHTML = results.map(res=>{
+      if(!res.ok) return `<div style="margin-bottom:8px">오류: ${res.err}</div>`;
+      const breakdown = `거리: ${res.km}km · 예상요율(${TRUCK_NAMES[window._gRoutes[res.idx].truck]}): ${res.est.toLocaleString()}원`;
+      return `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:6px"><b>${res.origin} → ${res.destination}</b><div style="font-size:13px;color:var(--text2);margin-top:6px">${breakdown}</div></div>`;
+    }).join('');
+    // after computing routes, generate heatmap data cache
+    try{ generateHeatmapData(); }catch(e){console.warn('heatmap gen failed',e); }
+  }).catch(e=>{ container.innerHTML='계산 중 오류가 발생했습니다.'; console.error(e); });
+}
+
+function clearGMapRoutes(){
+  if(window._gDirRenderers) window._gDirRenderers.forEach(d=>d.setMap(null));
+  if(window._gMarkers) window._gMarkers.forEach(m=>m.setMap(null));
+  window._gDirRenderers = [];
+  window._gMarkers = [];
+}
+
+// ===================== 클러스터, 필터, 공차(Deadhead) 커버리지 =====================
+window._markerCluster = null;
+function toggleClustering(enable){
+  if(enable){
+    // load markerclusterer if needed
+    if(!window.MarkerClusterer && !window._markerClusterLoaded){
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js';
+      s.onload = ()=>{ window._markerClusterLoaded = true; createCluster(); };
+      document.head.appendChild(s);
+    } else createCluster();
+  } else {
+    if(window._markerCluster){ window._markerCluster.clearMarkers(); window._markerCluster = null; }
+    // ensure individual markers are visible
+    if(window._gMarkers) window._gMarkers.forEach(m=>m.setMap(window._gmap));
+  }
+}
+
+function createCluster(){
+  if(!window._gMarkers || !window._gmap) return;
+  try{
+    if(window._markerCluster) window._markerCluster.clearMarkers();
+    window._markerCluster = new markerClusterer.MarkerClusterer({map: window._gmap, markers: window._gMarkers});
+  }catch(e){console.warn('MarkerClusterer create failed',e);}
+}
+
+function applyRouteFilters(){
+  const maxKm = parseInt(document.getElementById('fltMaxKm').value) || 1000;
+  const minCost = parseInt(document.getElementById('fltMinCost').value) || 0;
+  const truckSel = document.getElementById('fltTruck').value;
+  // iterate results container to find costs and match with _gRoutes
+  if(!window._gRoutes || !window._gDirRenderers) return;
+  window._gRoutes.forEach((r,i)=>{
+    const matchesTruck = truckSel==='all' ? true : (parseInt(truckSel)===r.truck);
+    // find last computed km/est by searching gResults text (we also store last results on _gLastResults)
+    const last = (window._gLastResults && window._gLastResults[i]) || {};
+    const km = last.km || 999999;
+    const est = last.est || 0;
+    const keep = matchesTruck && km <= maxKm && est >= minCost;
+    // set visibility
+    if(window._gDirRenderers && window._gDirRenderers[i]) window._gDirRenderers[i].setMap(keep? window._gmap : null);
+    if(window._gMarkers && window._gMarkers[i*2]){ window._gMarkers[i*2].setMap(keep? window._gmap : null); window._gMarkers[i*2+1].setMap(keep? window._gmap : null); }
+  });
+  // update cluster if enabled
+  if(document.getElementById('chkCluster').checked) createCluster();
+}
+
+// coverage (deadhead) visualization: create circles (30km) along route overview_path
+window._gCoverage = [];
+function toggleCoverageForRoute(i){
+  if(!window._gCoverage[i]){
+    // create coverage for route i
+    if(!window._gDirRenderers || !window._gDirRenderers[i]) return;
+    const dir = window._gDirRenderers[i].getDirections();
+    if(!dir) return;
+    const path = dir.routes[0].overview_path;
+    const circles = [];
+    // sample along overview_path to avoid too many circles: accumulate distance and place every ~20km
+    let accum = 0; let prev = path[0];
+    for(let p=1;p<path.length;p++){
+      const cur = path[p];
+      const d = google.maps.geometry.spherical.computeDistanceBetween(prev, cur);
+      accum += d;
+      if(accum >= 20000 || p===path.length-1){
+        const circle = new google.maps.Circle({map: window._gmap, center: cur, radius:30000, strokeColor:'#ffaa33', strokeOpacity:0.35, strokeWeight:2, fillColor:'#ffaa33', fillOpacity:0.12});
+        circles.push(circle);
+        accum = 0; prev = cur;
+      }
+    }
+    window._gCoverage[i] = circles;
+  } else {
+    // remove
+    window._gCoverage[i].forEach(c=>c.setMap(null));
+    window._gCoverage[i] = null;
+  }
+}
+
+function toggleAllCoverage(){
+  if(!window._gRoutes) return;
+  const anyShown = window._gCoverage.some(c=>c && c.length>0);
+  if(anyShown){
+    window._gCoverage.forEach((c,idx)=>{ if(c) { c.forEach(x=>x.setMap(null)); window._gCoverage[idx]=null; } });
+  } else {
+    window._gRoutes.forEach((r,i)=>{ try{ toggleCoverageForRoute(i); }catch(e){console.warn(e);} });
+  }
+}
+
+// ===================== Heatmap (복차 우선순위) =====================
+window._heatmapLayer = null;
+window._heatmapPoints = [];
+function generateHeatmapData(){
+  // build points from coverage circles and _gLastResults priorities
+  window._heatmapPoints = [];
+  window._heatmapCandidates = [];
+  if(!window._gCoverage || !window._gLastResults) return;
+  // collect raw metrics for normalization
+  const raws = [];
+  for(let i=0;i<window._gCoverage.length;i++){
+    const cov = window._gCoverage[i];
+    const last = (window._gLastResults && window._gLastResults[i]) || {km:9999, est:0, truck:0, origin:'', destination:''};
+    if(!cov) continue;
+    // find trips from TARIFF_TABLE if available
+    let trips = 0;
+    for(const t of TARIFF_TABLE){
+      if((t.from===last.origin && t.to===last.destination) || (t.from===last.destination && t.to===last.origin)){ trips = t.trips||0; break; }
+    }
+    const cap = TRUCK_CAPS_KG[last.truck]||1000;
+    // create an entry per coverage circle center
+    cov.forEach(circle=>{
+      const center = circle.getCenter();
+      raws.push({i,center,km:last.km,est:last.est,trips,cap,origin:last.origin,destination:last.destination,truck:last.truck});
+    });
+  }
+  if(raws.length===0) return;
+  // normalization helpers
+  const arrEst = raws.map(r=>r.est); const arrTrips = raws.map(r=>r.trips); const arrKm = raws.map(r=>r.km); const arrCap = raws.map(r=>r.cap);
+  const norm = arr => { const min=Math.min(...arr), max=Math.max(...arr); if(max===min) return arr.map(()=>1); return arr.map(v=> (v-min)/(max-min) ); };
+  const nEst = norm(arrEst); const nTrips = norm(arrTrips); const nKmInverse = norm(arrKm.map(v=>1/(v+1))); const nCap = norm(arrCap);
+  // external metric normalization
+  const arrExt = raws.map(r=>{
+    const val = getExternalMetricForPoint(r.center.lat(), r.center.lng());
+    return val===null?0:val;
+  });
+  const nExt = norm(arrExt);
+  // weights from UI
+  const wProfit = parseFloat(document.getElementById('wProfit').value)||0.5;
+  const wFreq = parseFloat(document.getElementById('wFreq').value)||0.3;
+  const wDist = parseFloat(document.getElementById('wDist').value)||0.1;
+  const wCap = parseFloat(document.getElementById('wCap').value)||0.1;
+  const wExt = parseFloat(document.getElementById('wExternal')?.value) || 0.0;
+  const sumW = wProfit + wFreq + wDist + wCap + wExt || 1;
+  for(let k=0;k<raws.length;k++){
+    const r = raws[k];
+    const score = (wProfit * nEst[k] + wFreq * nTrips[k] + wDist * nKmInverse[k] + wCap * nCap[k] + wExt * nExt[k]) / sumW;
+    const weight = Math.max(0.1, Math.round(score * 100));
+    window._heatmapPoints.push({location: r.center, weight: weight});
+    window._heatmapCandidates.push({lat:r.center.lat(),lng:r.center.lng(),score:score,km:r.km,est:r.est,trips:r.trips,cap:r.cap,ext:arrExt[k],origin:r.origin,destination:r.destination,truck:r.truck});
+  }
+}
+
+function toggleHeatmap(show){
+  if(typeof show === 'undefined') show = !(window._heatmapLayer && window._heatmapLayer.getMap());
+  if(show){
+    if(!window._heatmapPoints || window._heatmapPoints.length===0) generateHeatmapData();
+    if(!window._heatmapPoints || window._heatmapPoints.length===0){ alert('히트맵에 사용할 포인트가 없습니다. 먼저 공차 커버리지를 생성하세요.'); return; }
+    if(window._heatmapLayer) window._heatmapLayer.setMap(null);
+    const radius = parseInt(document.getElementById('heatRadius').value) || 40;
+    const dissip = parseInt(document.getElementById('heatDissip').value) || 40;
+    const invert = document.getElementById('heatInvert').checked;
+    const grad = invert ? getInvertedGradient() : getDefaultGradient();
+    window._heatmapLayer = new google.maps.visualization.HeatmapLayer({data: window._heatmapPoints, dissipating:true, radius:radius, opacity:0.75});
+    window._heatmapLayer.set('gradient', grad);
+    window._heatmapLayer.setMap(window._gmap);
+    buildHeatLegend(grad);
+  } else {
+    if(window._heatmapLayer) window._heatmapLayer.setMap(null);
+  }
+}
+
+function updateHeatmapStyle(){
+  if(!window._heatmapLayer) { toggleHeatmap(true); return; }
+  const radius = parseInt(document.getElementById('heatRadius').value) || 40;
+  const invert = document.getElementById('heatInvert').checked;
+  const grad = invert ? getInvertedGradient() : getDefaultGradient();
+  window._heatmapLayer.set('radius', radius);
+  window._heatmapLayer.set('gradient', grad);
+  buildHeatLegend(grad);
+}
+
+function getDefaultGradient(){
+  return [
+    'rgba(0, 255, 255, 0)',
+    'rgba(0, 255, 255, 1)',
+    'rgba(0, 191, 255, 1)',
+    'rgba(0, 127, 255, 1)',
+    'rgba(0, 63, 255, 1)',
+    'rgba(0, 0, 255, 1)',
+    'rgba(127, 0, 255, 1)',
+    'rgba(191, 0, 255, 1)',
+    'rgba(255, 0, 191, 1)',
+    'rgba(255, 0, 127, 1)',
+    'rgba(255, 0, 0, 1)'
+  ];
+}
+
+function getInvertedGradient(){
+  return getDefaultGradient().slice().reverse();
+}
+
+function buildHeatLegend(grad){
+  const el = document.getElementById('heatLegend');
+  el.innerHTML = '';
+  const bar = document.createElement('div');
+  bar.style.height = '12px'; bar.style.width = '200px'; bar.style.borderRadius='6px';
+  bar.style.background = `linear-gradient(90deg, ${grad.join(',')})`;
+  bar.style.border = '1px solid rgba(255,255,255,0.06)';
+  el.appendChild(bar);
+  const labels = document.createElement('div'); labels.style.fontSize='11px'; labels.style.color='var(--text2)'; labels.style.marginLeft='8px'; labels.textContent='낮음 ← 색상 → 높음';
+  el.appendChild(labels);
+}
+
+function exportTopCandidates(){
+  const topN = parseInt(document.getElementById('topN').value) || 20;
+  if(!window._heatmapCandidates || window._heatmapCandidates.length===0){ alert('후보가 없습니다. 먼저 공차 커버리지 및 히트맵을 생성하세요.'); return; }
+  const sorted = window._heatmapCandidates.slice().sort((a,b)=>b.score - a.score).slice(0,topN);
+  // perform reverse geocoding to get 시/군 info for each candidate, then export
+  const geocoder = (window.google && google.maps && new google.maps.Geocoder()) || null;
+  const geocodeOne = (pt) => {
+    return new Promise((resolve) => {
+      if(!geocoder){ resolve({...pt,adm1:'',adm2:''}); return; }
+      const latlng = {lat: pt.lat, lng: pt.lng};
+      geocoder.geocode({location: latlng}, (results, status) => {
+        if(status !== 'OK' || !results || results.length===0){ resolve({...pt,adm1:'',adm2:''}); return; }
+        // parse address_components for administrative area levels
+        let adm1='', adm2='';
+        const comps = results[0].address_components || [];
+        comps.forEach(c=>{
+          if(c.types.includes('administrative_area_level_1')) adm1 = c.long_name;
+          if(c.types.includes('administrative_area_level_2')) adm2 = c.long_name;
+        });
+        resolve({...pt,adm1,adm2});
+      });
+    });
+  };
+  Promise.all(sorted.map(s=>geocodeOne(s))).then(withAdms=>{
+    const header = ['rank,lat,lng,score,km,est,trips,cap,origin,destination,truck,adm1,adm2'];
+    const rows = withAdms.map((r,i)=>`${i+1},${r.lat},${r.lng},${r.score.toFixed(4)},${r.km},${r.est},${r.trips},${r.cap},"${r.origin}","${r.destination}",${r.truck},"${r.adm1}","${r.adm2}"`);
+    const csv = header.concat(rows).join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `heatmap_candidates_top${topN}.csv`; a.click(); URL.revokeObjectURL(url);
+  }).catch(e=>{ alert('역지오코딩 중 오류 발생. 기본값으로 내보냅니다.'); const header = ['rank,lat,lng,score,km,est,trips,cap,origin,destination,truck']; const rows = sorted.map((r,i)=>`${i+1},${r.lat},${r.lng},${r.score.toFixed(4)},${r.km},${r.est},${r.trips},${r.cap},"${r.origin}","${r.destination}",${r.truck}`); const csv = header.concat(rows).join('\n'); const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url = URL.createObjectURL(blob); const aa = document.createElement('a'); aa.href = url; aa.download = `heatmap_candidates_top${topN}.csv`; aa.click(); URL.revokeObjectURL(url); });
+}
+
+// ===================== External CSV load + integration =====================
+window._externalData = null;
+function parseCSVToArray(text){
+  const lines = text.replace(/\r/g,'').split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  const header = lines[0].split(/,|;|\t/).map(h=>h.trim());
+  const rows = lines.slice(1).map(l=>{
+    const cols = l.split(/,|;|\t/);
+    const obj = {};
+    header.forEach((h,idx)=> obj[h]= (cols[idx]!==undefined?cols[idx].trim():'') );
+    return obj;
+  });
+  return {header,rows};
+}
+
+function loadExternalCsv(){
+  const f = document.getElementById('externalCsv').files[0];
+  if(!f){ alert('CSV 파일을 선택하세요.'); return; }
+  const r = new FileReader();
+  r.onload = e => {
+    try{
+      const parsed = parseCSVToArray(e.target.result);
+      window._externalData = parsed;
+      // populate selects
+      const latSel = document.getElementById('extLatCol'); const lngSel = document.getElementById('extLngCol'); const mSel = document.getElementById('extMetricCol');
+      [latSel,lngSel,mSel].forEach(s=>{ s.innerHTML=''; parsed.header.forEach(h=> s.appendChild(new Option(h,h))); });
+      document.getElementById('extStatus').textContent = `외부데이터: ${parsed.rows.length}건 로드됨`;
+    }catch(err){ alert('CSV 파싱 오류'); console.error(err); }
+  };
+  r.readAsText(f,'utf-8');
+}
+
+function getExternalMetricForPoint(lat,lng){
+  if(!window._externalData) return null;
+  const latCol = document.getElementById('extLatCol').value;
+  const lngCol = document.getElementById('extLngCol').value;
+  const metCol = document.getElementById('extMetricCol').value;
+  if(!latCol || !lngCol || !metCol) return null;
+  const rows = window._externalData.rows;
+  const radiusM = (parseFloat(document.getElementById('extMatchKm').value)||20)*1000;
+  let vals = [];
+  rows.forEach(r=>{
+    const rl = parseFloat(r[latCol]); const rg = parseFloat(r[lngCol]);
+    if(isNaN(rl)||isNaN(rg)) return;
+    const d = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lat,lng), new google.maps.LatLng(rl,rg));
+    if(d <= radiusM){ const v = parseFloat(r[metCol]); if(!isNaN(v)) vals.push({d,v}); }
+  });
+  if(vals.length===0) return null;
+  // weighted average by inverse distance
+  let wsum=0, vsum=0;
+  vals.forEach(o=>{ const w = 1/(o.d+1); wsum+=w; vsum+=o.v*w; });
+  return vsum/wsum;
+}
+
+// ===================== 지도에 Top 후보 라벨 표시 =====================
+window._topCandidateMarkers = [];
+function clearTopCandidateMarkers(){
+  if(window._topCandidateMarkers){ window._topCandidateMarkers.forEach(m=>m.setMap(null)); window._topCandidateMarkers = []; }
+}
+
+function showTopCandidatesOnMap(){
+  const topN = parseInt(document.getElementById('topN').value) || 20;
+  if(!window._heatmapCandidates || window._heatmapCandidates.length===0){ alert('후보가 없습니다. 먼저 히트맵/커버리지를 생성하세요.'); return; }
+  const sorted = window._heatmapCandidates.slice().sort((a,b)=>b.score - a.score).slice(0,topN);
+  if(!window._gmap) { alert('지도 로드가 필요합니다. Google Maps를 먼저 로드하세요.'); return; }
+  clearTopCandidateMarkers();
+  // helper: color scale from green (low) to red (high)
+  function scoreToColor(s){
+    const v = Math.max(0, Math.min(1, s));
+    const hue = 120 - Math.round(120 * v); // 120 (green) -> 0 (red)
+    return `hsl(${hue},80%,45%)`;
+  }
+  function makeRankSVG(rank, color, size){
+    const sz = size||40;
+    const r = Math.round(sz);
+    const gradId = 'g'+Math.floor(Math.random()*100000);
+    const shadowId = 's'+Math.floor(Math.random()*100000);
+    const fontSize = Math.round(r*0.55);
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${r}' height='${r}' viewBox='0 0 ${r} ${r}'>`+
+      `<defs>`+
+        `<radialGradient id='${gradId}' cx='50%' cy='35%' r='70%'>`+
+          `<stop offset='0%' stop-color='rgba(255,255,255,0.95)'/>`+
+          `<stop offset='60%' stop-color='${color}' stop-opacity='1'/>`+
+          `<stop offset='100%' stop-color='rgba(0,0,0,0.25)'/>`+
+        `</radialGradient>`+
+        `<filter id='${shadowId}' x='-50%' y='-50%' width='200%' height='200%'><feDropShadow dx='0' dy='1' stdDeviation='1.2' flood-color='#000' flood-opacity='0.45'/></filter>`+
+      `</defs>`+
+      `<g filter='url(%23${shadowId})'>`+
+        `<circle cx='${r/2}' cy='${r/2}' r='${r/2 - 2}' fill='url(%23${gradId})' stroke='rgba(255,255,255,0.6)' stroke-width='2'/>`+
+        `<circle cx='${r/2}' cy='${r/2}' r='${r/2 - 6}' fill='rgba(0,0,0,0.12)' />`+
+      `</g>`+
+      `<text x='50%' y='54%' font-family='Malgun Gothic,Apple SD Gothic Neo,Segoe UI,Arial,Helvetica,sans-serif' font-size='${fontSize}' font-weight='800' fill='#ffffff' text-anchor='middle' dominant-baseline='middle' style='text-shadow: 0 1px 1px rgba(0,0,0,0.5);'>${rank}</text>`+
+      `</svg>`;
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  }
+
+  sorted.forEach((c,i)=>{
+    const pos = {lat: c.lat, lng: c.lng};
+    const scoreNorm = Math.max(0, Math.min(1, c.score));
+    const color = scoreToColor(scoreNorm);
+    // size: larger for higher-ranked items
+    const size = Math.max(28, Math.round(44 - (i * (30/topN))));
+    const iconUrl = makeRankSVG(i+1, color, size);
+    const marker = new google.maps.Marker({
+      position: pos,
+      map: window._gmap,
+      icon: {url: iconUrl, scaledSize: new google.maps.Size(size, size)}
+    });
+    const info = new google.maps.InfoWindow({content:`<div style="font-size:13px"><b>Rank ${i+1}</b><br>Score: ${c.score.toFixed(4)}<br>KM:${c.km} / Est:${c.est} / Trips:${c.trips}<br>${c.origin} → ${c.destination}</div>`});
+    marker.addListener('click', ()=> info.open({anchor:marker,map:window._gmap}));
+    window._topCandidateMarkers.push(marker);
+  });
+  // center map on top candidate
+  if(sorted[0]) window._gmap.setCenter({lat:sorted[0].lat,lng:sorted[0].lng});
+}
+
+
+// ===================== 요율표 렌더링 =====================
+const smBody = document.getElementById('rateTblSmallBody');
+const lgBody = document.getElementById('rateTblLargeBody');
+RATE_DATA.forEach((r,i)=>{
+  const highlight = r[0]%100===0 ? 'background:rgba(0,212,255,0.06)' : '';
+  const trS = document.createElement('tr');
+  trS.setAttribute('style', highlight);
+  trS.innerHTML = `<td style="font-weight:600">${r[0]}</td>`+
+    [1,2,3,4,5].map((j,ji)=>`<td style="${ji===0?'color:var(--accent)':ji===4?'color:var(--accent3)':''}">${r[j].toLocaleString()}</td>`).join('');
+  smBody.appendChild(trS);
+
+  if(r[6]){
+    const t25extra = r[0]>=400?80000:r[0]>=300?60000:r[0]>=200?40000:r[0]>=100?30000:0;
+    const trL = document.createElement('tr');
+    trL.setAttribute('style', highlight);
+    trL.innerHTML = `<td style="font-weight:600">${r[0]}</td>`+
+      [6,7,8,9].map((j,ji)=>`<td style="${ji===3?'color:var(--accent2)':''}">${r[j].toLocaleString()}</td>`).join('')+
+      `<td style="color:var(--accent2);font-weight:600">${(r[9]+t25extra).toLocaleString()}</td>`;
+    lgBody.appendChild(trL);
+  }
+});
+
+function showRateTbl(el, which){
+  document.querySelectorAll('.vtab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('rateTblSmall').style.display = which==='small'?'':'none';
+  document.getElementById('rateTblLarge').style.display = which==='large'?'':'none';
+}
+
+// ===================== TAB SWITCH =====================
+function showTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.querySelector(`[data-tab="${id}"]`).classList.add('active');
+  if(id==='map'){
+    setTimeout(()=>{
+      initLeafletMap();
+      if(window._leafletMap) window._leafletMap.invalidateSize();
+    },100);
+  }
+}
+</script>
+</body>
+</html>
