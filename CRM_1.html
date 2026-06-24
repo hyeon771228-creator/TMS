@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>운송물류 영업 CRM 시스템</title>
+<style>
+:root {
+  --ink: #16212f;
+  --muted: #667085;
+  --line: #d8dee8;
+  --panel: #ffffff;
+  --bg: #eef3f8;
+  --blue: #1f4f82;
+  --teal: #147c72;
+  --green: #2f7d45;
+  --amber: #b56b00;
+  --red: #b42318;
+  --purple: #6d3bbf;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, "Malgun Gothic", sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+header {
+  background: #17385f;
+  color: #fff;
+  padding: 18px 24px;
+}
+header h1 { margin: 0 0 6px; font-size: 24px; }
+header p { margin: 0; color: #dce8f5; }
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 82px);
+}
+nav {
+  background: #102a46;
+  padding: 14px;
+}
+nav button {
+  width: 100%;
+  display: block;
+  margin: 0 0 8px;
+  padding: 11px 12px;
+  color: #e8f1fa;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+nav button.active, nav button:hover {
+  background: #214b75;
+  border-color: #3b658f;
+}
+main { padding: 20px; overflow: auto; }
+.view { display: none; }
+.view.active { display: block; }
+.grid {
+  display: grid;
+  gap: 14px;
+}
+.cards { grid-template-columns: repeat(6, minmax(140px, 1fr)); margin-bottom: 16px; }
+.two { grid-template-columns: 1.2fr .8fr; }
+.three { grid-template-columns: repeat(3, 1fr); }
+.card, .panel, .kanban-column {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(16, 42, 70, .08);
+}
+.card { padding: 15px; }
+.card h3, .panel h3 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+.card strong { display: block; font-size: 26px; }
+.panel { padding: 16px; margin-bottom: 16px; }
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.section-title h2 { margin: 0; font-size: 20px; }
+label { display: block; font-size: 12px; color: var(--muted); margin: 5px 5px 2px; }
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: 14px;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #c8d1dc;
+  border-radius: 6px;
+  background: #fff;
+}
+textarea { min-height: 74px; resize: vertical; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 8px;
+}
+.wide { grid-column: span 2; }
+.full { grid-column: 1 / -1; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.primary, .ghost, .danger {
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+.primary { background: var(--blue); color: white; }
+.ghost { background: #edf2f7; color: #17385f; }
+.danger { background: #f8d7da; color: #8a1f17; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+th, td {
+  border-bottom: 1px solid var(--line);
+  padding: 9px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #e8eef6; color: #344054; font-size: 13px; }
+td small { color: var(--muted); }
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.신규발굴 { color: #0b5cab; background: #e5f0ff; }
+.접촉진행 { color: #956000; background: #fff1d6; }
+.비딩참여 { color: #5d2e9c; background: #efe7ff; }
+.계약완료 { color: #176b33; background: #ddf4e5; }
+.실패보류 { color: #a11b12; background: #ffe3e0; }
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(190px, 1fr));
+  gap: 12px;
+}
+.kanban-column { padding: 10px; min-height: 280px; }
+.kanban-column h3 { color: var(--ink); }
+.deal {
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--blue);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+.deal strong { display: block; }
+.deal button { margin-top: 6px; }
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.day {
+  min-height: 94px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 7px;
+  font-size: 12px;
+}
+.day:nth-child(7n) { border-right: 0; }
+.event {
+  display: block;
+  margin-top: 4px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  background: #e6f3f1;
+  color: #0f625b;
+}
+.map-list {
+  max-height: 345px;
+  overflow: auto;
+}
+.map-item {
+  border-bottom: 1px solid var(--line);
+  padding: 9px 0;
+}
+.map-frame {
+  width: 100%;
+  height: 360px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.metric-table td:nth-child(n+2), .metric-table th:nth-child(n+2) {
+  text-align: right;
+}
+.route-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+.route-card strong { display: block; margin-bottom: 4px; }
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.summary-strip div {
+  background: #f7fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+}
+.summary-strip span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.summary-strip strong { font-size: 20px; }
+canvas {
+  width: 100%;
+  height: 260px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.contact-card {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+.contact-card img {
+  width: 86px;
+  height: 58px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.notice {
+  border-left: 4px solid var(--amber);
+  background: #fff7e8;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+@media (max-width: 1180px) {
+  .app { grid-template-columns: 1fr; }
+  nav { display: flex; overflow-x: auto; gap: 8px; }
+  nav button { min-width: 150px; }
+  .cards, .two, .three, .kanban { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 760px) {
+  .cards, .two, .three, .kanban, .form-grid { grid-template-columns: 1fr; }
+  .wide { grid-column: span 1; }
+  table { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>운송물류 영업 CRM 시스템</h1>
+  <p>산업단지 DB 수집, 화주 자동분류, 비딩 일정, 영업 파이프라인, 방문관리, KPI와 매출 예측을 한 번에 관리합니다.</p>
+</header>
+
+<div class="app">
+  <nav>
+    <button class="active" data-view="dashboard">대시보드</button>
+    <button data-view="customers">거래처 DB</button>
+    <button data-view="pipeline">영업 파이프라인</button>
+    <button data-view="calendar">비딩/방문 일정</button>
+    <button data-view="activities">영업활동 실적</button>
+    <button data-view="revenue">계약 매출/이익</button>
+    <button data-view="map">화주 위치 지도</button>
+    <button data-view="routes">운송구간 확인 지도</button>
+    <button data-view="contacts">담당자/명함</button>
+    <button data-view="uploads">Excel 업로드</button>
+    <button data-view="settings">CRM 설정</button>
+  </nav>
+
+  <main>
+    <section id="dashboard" class="view active">
+      <div class="grid cards">
+        <div class="card"><h3>전체 거래처</h3><strong id="kpiTotal">0</strong></div>
+        <div class="card"><h3>접촉 진행</h3><strong id="kpiContact">0</strong></div>
+        <div class="card"><h3>비딩 참여</h3><strong id="kpiBid">0</strong></div>
+        <div class="card"><h3>계약 완료</h3><strong id="kpiContract">0</strong></div>
+        <div class="card"><h3>예상 매출</h3><strong id="kpiSales">0억</strong></div>
+        <div class="card"><h3>KPI 달성률</h3><strong id="kpiRate">0%</strong></div>
+      </div>
+      <div class="grid two">
+        <div class="panel">
+          <div class="section-title"><h2>예상 매출 그래프</h2><button class="ghost" onclick="seedSampleData()">샘플 데이터</button></div>
+          <canvas id="salesChart" width="900" height="320"></canvas>
+        </div>
+        <div class="panel">
+          <div class="section-title"><h2>오늘의 알림</h2><button class="ghost" onclick="checkAlerts()">알림 새로고침</button></div>
+          <div id="alertList"></div>
+        </div>
+      </div>
+      <div class="grid three">
+        <div class="panel"><h2>산업군 분포</h2><div id="industrySummary"></div></div>
+        <div class="panel"><h2>월간 활동 실적</h2><div id="activitySummary"></div></div>
+        <div class="panel"><h2>CRM 기능</h2><div id="crmSummary"></div></div>
+      </div>
+    </section>
+
+    <section id="customers" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h2>산업단지 DB 자동 수집</h2>
+          <button class="ghost" onclick="collectIndustrialParkDB()">공개 DB 샘플 수집</button>
+        </div>
+        <div class="notice">실서비스에서는 산업단지공단, 지자체, 조달/입찰 사이트 API를 연결합니다. 현재 버전은 로컬에서 동작하는 CRM 시제품이라 샘플 산업단지 데이터를 자동 생성하고 산업군을 분류합니다.</div>
+      </div>
+
+      <div class="panel">
+        <h2>신규 화주사 등록</h2>
+        <div class="form-grid">
+          <div><label>화주사명</label><input id="company" placeholder="예: 한국센트럴글래스" /></div>
+          <div><label>산업군 자동분류 키워드</label><input id="keywords" placeholder="예: 유리, 건자재, 반도체" oninput="previewClassify()" /></div>
+          <div><label>산업군</label><select id="industry"></select></div>
+          <div><label>산업단지/지역</label><input id="region" placeholder="예: 아산테크노밸리" /></div>
+          <div><label>주소</label><input id="address" placeholder="예: 충남 아산시 ..." /></div>
+          <div><label>담당자</label><input id="manager" placeholder="예: 홍길동" /></div>
+          <div><label>연락처</label><input id="phone" placeholder="010-0000-0000" /></div>
+          <div><label>이메일</label><input id="email" placeholder="name@company.com" /></div>
+          <div><label>월 물동량</label><input id="volume" placeholder="예: 월 300톤 / 40FT 20대" /></div>
+          <div><label>진행상태</label><select id="status"></select></div>
+          <div><label>예상매출(억원)</label><input id="expectedSales" type="number" step="0.1" placeholder="예: 3.5" /></div>
+          <div><label>KPI 목표(억원)</label><input id="salesTarget" type="number" step="0.1" placeholder="예: 5" /></div>
+          <div class="wide"><label>비딩 일정</label><input id="bidDate" type="date" /></div>
+          <div class="wide"><label>다음 방문 일정</label><input id="visitDate" type="date" /></div>
+          <div class="full"><label>메모</label><textarea id="memo" placeholder="운송 조건, 담당자 성향, 경쟁사, 후속 조치"></textarea></div>
+        </div>
+        <div class="actions">
+          <button class="primary" onclick="addCustomer()">거래처 등록</button>
+          <button class="ghost" onclick="clearCustomerForm()">입력 초기화</button>
+          <span id="classifyHint"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">
+          <h2>거래처 영업 리스트</h2>
+          <div class="actions">
+            <select id="filterIndustry" onchange="renderAll()"></select>
+            <input id="searchText" placeholder="회사명/지역/담당자 검색" oninput="renderCustomers()" />
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>화주사</th><th>산업군</th><th>지역</th><th>담당자</th><th>연락처</th><th>물동량</th><th>상태</th><th>예상매출</th><th>일정</th><th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="customerTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="pipeline" class="view">
+      <div class="section-title"><h2>영업 파이프라인 Kanban</h2><button class="ghost" onclick="renderPipeline()">새로고침</button></div>
+      <div id="kanban" class="kanban"></div>
+    </section>
+
+    <section id="calendar" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h2>비딩 일정 캘린더 및 자동 알림</h2>
+          <input id="calendarMonth" type="month" onchange="renderCalendar()" />
+        </div>
+        <div id="calendarGrid" class="calendar"></div>
+      </div>
+      <div class="panel">
+        <h2>거래처 방문 일정 관리</h2>
+        <table><thead><tr><th>일자</th><th>구분</th><th>거래처</th><th>담당자</th><th>메모</th></tr></thead><tbody id="scheduleTable"></tbody></table>
+      </div>
+    </section>
+
+    <section id="activities" class="view">
+      <div class="panel">
+        <h2>영업활동 실적관리</h2>
+        <div class="form-grid">
+          <div><label>거래처</label><select id="activityCustomer"></select></div>
+          <div><label>활동일</label><input id="activityDate" type="date" /></div>
+          <div><label>활동유형</label><select id="activityType"><option>전화</option><option>방문</option><option>견적</option><option>비딩</option><option>계약협의</option><option>클레임 대응</option></select></div>
+          <div><label>성과점수</label><input id="activityScore" type="number" min="0" max="100" value="50" /></div>
+          <div class="full"><label>활동 내용</label><textarea id="activityMemo" placeholder="상담 내용, 요청사항, 다음 액션"></textarea></div>
+        </div>
+        <div class="actions"><button class="primary" onclick="addActivity()">활동 등록</button></div>
+      </div>
+      <div class="panel"><table><thead><tr><th>일자</th><th>거래처</th><th>유형</th><th>점수</th><th>내용</th><th>삭제</th></tr></thead><tbody id="activityTable"></tbody></table></div>
+    </section>
+
+    <section id="revenue" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h2>계약 거래처 월간/분기/연간 매출 및 매출이익</h2>
+          <button class="ghost" onclick="seedRevenueData()">계약 샘플 실적</button>
+        </div>
+        <div class="notice">진행상태가 계약완료인 거래처를 기준으로 월간 매출, 매출이익, 매출이익률을 입력하고 분기 및 연간 누적 실적을 자동 계산합니다.</div>
+        <div class="form-grid">
+          <div><label>계약 거래처</label><select id="revenueCustomer"></select></div>
+          <div><label>실적 월</label><input id="revenueMonth" type="month" /></div>
+          <div><label>월간 매출(억원)</label><input id="monthlyRevenue" type="number" step="0.1" /></div>
+          <div><label>매출원가(억원)</label><input id="monthlyCost" type="number" step="0.1" /></div>
+          <div class="full"><label>메모</label><textarea id="revenueMemo" placeholder="정산 특이사항, 유류비 변동, 추가 운송비 등"></textarea></div>
+        </div>
+        <div class="actions">
+          <button class="primary" onclick="addRevenueRecord()">실적 등록</button>
+          <button class="ghost" onclick="renderRevenue()">실적 새로고침</button>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="panel">
+          <h2>계약 실적 요약</h2>
+          <div id="revenueSummary"></div>
+          <canvas id="profitChart" width="900" height="320"></canvas>
+        </div>
+        <div class="panel">
+          <h2>월간 실적 입력 내역</h2>
+          <table class="metric-table">
+            <thead><tr><th>월</th><th>거래처</th><th>매출</th><th>매출이익</th><th>이익률</th><th>삭제</th></tr></thead>
+            <tbody id="revenueTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>거래처별 분기 및 연간 누적</h2>
+        <table class="metric-table">
+          <thead><tr><th>거래처</th><th>Q1 매출</th><th>Q1 이익</th><th>Q2 매출</th><th>Q2 이익</th><th>Q3 매출</th><th>Q3 이익</th><th>Q4 매출</th><th>Q4 이익</th><th>연매출</th><th>연이익</th><th>연이익률</th></tr></thead>
+          <tbody id="revenueAggregateTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="map" class="view">
+      <div class="grid two">
+        <div class="panel">
+          <div class="section-title"><h2>Google Maps 기반 화주 위치 표시</h2><button class="ghost" onclick="renderMap()">지도 새로고침</button></div>
+          <iframe id="mapFrame" class="map-frame" loading="lazy"></iframe>
+        </div>
+        <div class="panel">
+          <h2>화주 위치 목록</h2>
+          <div id="mapList" class="map-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="routes" class="view">
+      <div class="panel">
+        <div class="section-title">
+          <h2>운송구간 확인 지도</h2>
+          <button class="ghost" onclick="seedRouteData()">계약 운송구간 샘플</button>
+        </div>
+        <div class="notice">이미 계약된 거래처의 상차지, 하차지, 필요 차량톤수, 운송품목을 관리하고 Google Maps 경로 지도로 확인합니다. 기존 화주 위치 정보는 그대로 유지됩니다.</div>
+        <div class="form-grid">
+          <div><label>계약 거래처</label><select id="routeCustomer"></select></div>
+          <div><label>필요 차량톤수</label><select id="vehicleTon"><option>1톤</option><option>2.5톤</option><option>3.5톤</option><option>5톤</option><option>8톤</option><option>11톤</option><option>18톤</option><option>25톤</option><option>트레일러</option><option>탱크로리</option><option>냉장/냉동</option></select></div>
+          <div><label>상차지</label><input id="originAddress" placeholder="예: 충남 아산시 탕정면" /></div>
+          <div><label>하차지</label><input id="destinationAddress" placeholder="예: 경기 평택시 고덕면" /></div>
+          <div><label>운송품목</label><input id="cargoItem" placeholder="예: 유리 원판, 반도체 장비" /></div>
+          <div><label>월 운송횟수</label><input id="monthlyTrips" type="number" placeholder="예: 30" /></div>
+          <div class="wide"><label>운송조건</label><input id="routeCondition" placeholder="예: 윙바디, 항온, 위험물, 리프트" /></div>
+          <div class="full"><label>메모</label><textarea id="routeMemo" placeholder="시간 제한, 대기 조건, 상하차 장비, 회차 가능 여부"></textarea></div>
+        </div>
+        <div class="actions">
+          <button class="primary" onclick="addRoute()">운송구간 등록</button>
+          <button class="ghost" onclick="renderRoutes()">지도 새로고침</button>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="panel">
+          <h2>Google Maps 운송구간</h2>
+          <iframe id="routeMapFrame" class="map-frame" loading="lazy"></iframe>
+        </div>
+        <div class="panel">
+          <h2>계약 운송구간 목록</h2>
+          <div id="routeList" class="map-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contacts" class="view">
+      <div class="panel">
+        <h2>거래처 담당자 연락처 및 명함 업로드</h2>
+        <div class="form-grid">
+          <div><label>거래처</label><select id="contactCustomer"></select></div>
+          <div><label>담당자명</label><input id="contactName" /></div>
+          <div><label>직책</label><input id="contactTitle" /></div>
+          <div><label>연락처</label><input id="contactPhone" /></div>
+          <div><label>이메일</label><input id="contactEmail" /></div>
+          <div><label>명함 이미지</label><input id="businessCard" type="file" accept="image/*" /></div>
+          <div class="full"><label>메모</label><textarea id="contactMemo"></textarea></div>
+        </div>
+        <div class="actions"><button class="primary" onclick="addContact()">담당자 등록</button></div>
+      </div>
+      <div id="contactList" class="grid three"></div>
+    </section>
+
+    <section id="uploads" class="view">
+      <div class="panel">
+        <h2>거래처 매출 및 물동량 자료 Excel 파일 업로드</h2>
+        <div class="notice">브라우저만으로 동작하도록 CSV/TSV 파일을 우선 지원합니다. Excel에서 “CSV UTF-8”로 저장한 파일을 올리면 회사명, 매출, 물동량을 자동 반영합니다.</div>
+        <input id="excelUpload" type="file" accept=".csv,.tsv,.txt" />
+        <div class="actions">
+          <button class="primary" onclick="importSalesFile()">업로드 반영</button>
+          <button class="ghost" onclick="exportCustomers()">거래처 CSV 내보내기</button>
+        </div>
+      </div>
+      <div class="panel"><h2>업로드 로그</h2><div id="uploadLog"></div></div>
+    </section>
+
+    <section id="settings" class="view">
+      <div class="panel">
+        <h2>CRM 기능 추가 설정</h2>
+        <div class="form-grid">
+          <div><label>월 KPI 목표 매출(억원)</label><input id="globalTarget" type="number" step="0.1" /></div>
+          <div><label>비딩 알림 기준일</label><input id="alertDays" type="number" min="1" value="7" /></div>
+          <div><label>자동분류 규칙 추가 - 키워드</label><input id="ruleKeyword" placeholder="예: 배터리" /></div>
+          <div><label>매핑 산업군</label><select id="ruleIndustry"></select></div>
+        </div>
+        <div class="actions">
+          <button class="primary" onclick="saveSettings()">설정 저장</button>
+          <button class="ghost" onclick="addRule()">분류 규칙 추가</button>
+          <button class="danger" onclick="resetAllData()">전체 데이터 초기화</button>
+        </div>
+      </div>
+      <div class="panel"><h2>자동분류 규칙</h2><div id="ruleList"></div></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const industries = ["반도체", "디스플레이", "자동차부품", "2차전지", "화학/위험물", "식품/냉장", "전자제품", "유리/건자재", "이커머스", "기타"];
+const statuses = ["신규발굴", "접촉진행", "비딩참여", "계약완료", "실패/보류"];
+const storageKey = "logisticsCrmSystem.v1";
+
+let state = JSON.parse(localStorage.getItem(storageKey)) || {
+  customers: [],
+  activities: [],
+  contacts: [],
+  uploads: [],
+  revenueRecords: [],
+  routes: [],
+  settings: {
+    globalTarget: 30,
+    alertDays: 7,
+    rules: [
+      { keyword: "반도체,웨이퍼,클린룸,장비", industry: "반도체" },
+      { keyword: "디스플레이,OLED,LCD,패널", industry: "디스플레이" },
+      { keyword: "자동차,모터,부품,전장", industry: "자동차부품" },
+      { keyword: "배터리,2차전지,양극재,음극재", industry: "2차전지" },
+      { keyword: "화학,위험물,케미칼,도료", industry: "화학/위험물" },
+      { keyword: "식품,냉장,냉동,신선", industry: "식품/냉장" },
+      { keyword: "전자,가전,PCB,부품", industry: "전자제품" },
+      { keyword: "유리,건자재,창호,시멘트", industry: "유리/건자재" },
+      { keyword: "이커머스,물류센터,풀필먼트,택배", industry: "이커머스" }
+    ]
+  }
+};
+
+state.revenueRecords = state.revenueRecords || [];
+state.routes = state.routes || [];
+state.settings = state.settings || {};
+state.settings.globalTarget = state.settings.globalTarget || 30;
+state.settings.alertDays = state.settings.alertDays || 7;
+state.settings.rules = state.settings.rules || [];
+
+function save() {
+  localStorage.setItem(storageKey, JSON.stringify(state));
+}
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function money(value) {
+  return `${Number(value || 0).toLocaleString("ko-KR")}억`;
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+}
+
+function fillSelect(id, values, includeAll) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = "";
+  if (includeAll) el.insertAdjacentHTML("beforeend", `<option value="전체">전체</option>`);
+  values.forEach(value => el.insertAdjacentHTML("beforeend", `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`));
+}
+
+function initialize() {
+  fillSelect("industry", industries);
+  fillSelect("filterIndustry", industries, true);
+  fillSelect("status", statuses);
+  fillSelect("ruleIndustry", industries);
+  document.getElementById("calendarMonth").value = new Date().toISOString().slice(0, 7);
+  document.getElementById("activityDate").value = todayISO();
+  document.getElementById("revenueMonth").value = new Date().toISOString().slice(0, 7);
+  document.getElementById("globalTarget").value = state.settings.globalTarget;
+  document.getElementById("alertDays").value = state.settings.alertDays;
+  document.querySelectorAll("nav button").forEach(button => {
+    button.addEventListener("click", () => showView(button.dataset.view));
+  });
+  renderAll();
+}
+
+function showView(viewId) {
+  document.querySelectorAll("nav button").forEach(btn => btn.classList.toggle("active", btn.dataset.view === viewId));
+  document.querySelectorAll(".view").forEach(view => view.classList.toggle("active", view.id === viewId));
+  renderAll();
+}
+
+function classifyIndustry(text) {
+  const haystack = String(text || "").toLowerCase();
+  for (const rule of state.settings.rules) {
+    const keywords = rule.keyword.split(",").map(item => item.trim().toLowerCase()).filter(Boolean);
+    if (keywords.some(keyword => haystack.includes(keyword))) return rule.industry;
+  }
+  return "기타";
+}
+
+function previewClassify() {
+  const company = document.getElementById("company").value;
+  const keywords = document.getElementById("keywords").value;
+  const industry = classifyIndustry(`${company} ${keywords}`);
+  document.getElementById("industry").value = industry;
+  document.getElementById("classifyHint").textContent = `자동분류: ${industry}`;
+}
+
+function addCustomer() {
+  const customer = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    company: document.getElementById("company").value.trim(),
+    keywords: document.getElementById("keywords").value.trim(),
+    industry: document.getElementById("industry").value,
+    region: document.getElementById("region").value.trim(),
+    address: document.getElementById("address").value.trim(),
+    manager: document.getElementById("manager").value.trim(),
+    phone: document.getElementById("phone").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    volume: document.getElementById("volume").value.trim(),
+    status: document.getElementById("status").value,
+    expectedSales: Number(document.getElementById("expectedSales").value || 0),
+    salesTarget: Number(document.getElementById("salesTarget").value || 0),
+    bidDate: document.getElementById("bidDate").value,
+    visitDate: document.getElementById("visitDate").value,
+    memo: document.getElementById("memo").value.trim(),
+    createdAt: todayISO()
+  };
+  if (!customer.company) {
+    alert("화주사명을 입력하세요.");
+    return;
+  }
+  if (!customer.industry || customer.industry === "기타") {
+    customer.industry = classifyIndustry(`${customer.company} ${customer.keywords} ${customer.memo}`);
+  }
+  state.customers.push(customer);
+  save();
+  clearCustomerForm();
+  renderAll();
+}
+
+function clearCustomerForm() {
+  document.querySelectorAll("#customers input, #customers textarea").forEach(el => el.value = "");
+  document.getElementById("status").value = "신규발굴";
+  document.getElementById("classifyHint").textContent = "";
+}
+
+function updateCustomerStatus(id, direction) {
+  const customer = state.customers.find(item => item.id === id);
+  if (!customer) return;
+  const index = statuses.indexOf(customer.status);
+  const next = Math.max(0, Math.min(statuses.length - 1, index + direction));
+  customer.status = statuses[next];
+  save();
+  renderAll();
+}
+
+function deleteCustomer(id) {
+  if (!confirm("거래처를 삭제하시겠습니까?")) return;
+  state.customers = state.customers.filter(item => item.id !== id);
+  state.activities = state.activities.filter(item => item.customerId !== id);
+  state.contacts = state.contacts.filter(item => item.customerId !== id);
+  save();
+  renderAll();
+}
+
+function filteredCustomers() {
+  const industry = document.getElementById("filterIndustry")?.value || "전체";
+  const search = (document.getElementById("searchText")?.value || "").toLowerCase();
+  return state.customers.filter(c => {
+    const industryOk = industry === "전체" || c.industry === industry;
+    const searchOk = !search || `${c.company} ${c.region} ${c.manager} ${c.phone}`.toLowerCase().includes(search);
+    return industryOk && searchOk;
+  });
+}
+
+function contractedCustomers() {
+  return state.customers.filter(c => c.status === "계약완료");
+}
+
+function renderCustomers() {
+  const tbody = document.getElementById("customerTable");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  filteredCustomers().forEach(c => {
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td><strong>${escapeHtml(c.company)}</strong><br><small>${escapeHtml(c.address)}</small></td>
+        <td>${escapeHtml(c.industry)}</td>
+        <td>${escapeHtml(c.region)}</td>
+        <td>${escapeHtml(c.manager)}<br><small>${escapeHtml(c.email)}</small></td>
+        <td>${escapeHtml(c.phone)}</td>
+        <td>${escapeHtml(c.volume)}</td>
+        <td><span class="badge ${statusClass(c.status)}">${escapeHtml(c.status)}</span></td>
+        <td>${money(c.expectedSales)}</td>
+        <td><small>비딩 ${c.bidDate || "-"}<br>방문 ${c.visitDate || "-"}</small></td>
+        <td>
+          <button class="ghost" onclick="updateCustomerStatus('${c.id}', 1)">다음</button>
+          <button class="danger" onclick="deleteCustomer('${c.id}')">삭제</button>
+        </td>
+      </tr>
+    `);
+  });
+}
+
+function statusClass(status) {
+  return status === "실패/보류" ? "실패보류" : status;
+}
+
+function collectIndustrialParkDB() {
+  const samples = [
+    ["아산디스플레이물류", "디스플레이 OLED 패널", "아산탕정디스플레이시티", "충남 아산시 탕정면", "월 500톤", 8.5],
+    ["평택반도체장비", "반도체 장비 클린룸", "평택고덕산업단지", "경기 평택시 고덕면", "40FT 35대", 12],
+    ["울산케미칼", "화학 위험물 도료", "울산미포국가산단", "울산 남구", "탱크로리 월 80대", 6.2],
+    ["오창배터리소재", "2차전지 양극재", "오창과학산업단지", "충북 청주시 오창읍", "월 700톤", 10.4],
+    ["김해냉장푸드", "식품 냉장 신선", "김해일반산업단지", "경남 김해시", "냉장 5톤 월 120대", 4.1]
+  ];
+  samples.forEach(([company, keywords, region, address, volume, expectedSales], index) => {
+    const existing = state.customers.find(c => c.company === company);
+    if (existing) {
+      if (index < 2) existing.status = "계약완료";
+      return;
+    }
+    state.customers.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${company}`,
+      company,
+      keywords,
+      industry: classifyIndustry(keywords),
+      region,
+      address,
+      manager: "미지정",
+      phone: "",
+      email: "",
+      volume,
+      status: index < 2 ? "계약완료" : "신규발굴",
+      expectedSales,
+      salesTarget: expectedSales,
+      bidDate: "",
+      visitDate: "",
+      memo: "산업단지 DB 자동 수집 샘플",
+      createdAt: todayISO()
+    });
+  });
+  save();
+  renderAll();
+}
+
+function renderDashboard() {
+  const totalSales = state.customers.reduce((sum, c) => sum + Number(c.expectedSales || 0), 0);
+  const target = Number(state.settings.globalTarget || 0);
+  document.getElementById("kpiTotal").textContent = state.customers.length;
+  document.getElementById("kpiContact").textContent = state.customers.filter(c => c.status === "접촉진행").length;
+  document.getElementById("kpiBid").textContent = state.customers.filter(c => c.status === "비딩참여").length;
+  document.getElementById("kpiContract").textContent = state.customers.filter(c => c.status === "계약완료").length;
+  document.getElementById("kpiSales").textContent = money(totalSales);
+  document.getElementById("kpiRate").textContent = target ? `${Math.round(totalSales / target * 100)}%` : "0%";
+  drawSalesChart();
+  renderIndustrySummary();
+  renderActivitySummary();
+  checkAlerts();
+  document.getElementById("crmSummary").innerHTML = `
+    <p>자동수집 DB: ${state.customers.filter(c => c.memo && c.memo.includes("자동 수집")).length}건</p>
+    <p>계약 매출 실적: ${state.revenueRecords.length}건</p>
+    <p>운송구간: ${state.routes.length}건</p>
+    <p>연락처/명함: ${state.contacts.length}건</p>
+    <p>업로드 이력: ${state.uploads.length}건</p>
+  `;
+}
+
+function drawSalesChart() {
+  const canvas = document.getElementById("salesChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const grouped = industries.map(industry => ({
+    industry,
+    value: state.customers.filter(c => c.industry === industry).reduce((sum, c) => sum + Number(c.expectedSales || 0), 0)
+  })).filter(item => item.value > 0);
+  const data = grouped.length ? grouped : [{ industry: "데이터 없음", value: 1 }];
+  const max = Math.max(...data.map(item => item.value), 1);
+  const barWidth = Math.max(38, (canvas.width - 90) / data.length - 12);
+  ctx.font = "14px Arial";
+  ctx.fillStyle = "#344054";
+  data.forEach((item, index) => {
+    const x = 50 + index * (barWidth + 12);
+    const height = (item.value / max) * 210;
+    const y = 260 - height;
+    ctx.fillStyle = ["#1f4f82", "#147c72", "#6d3bbf", "#b56b00", "#2f7d45"][index % 5];
+    ctx.fillRect(x, y, barWidth, height);
+    ctx.fillStyle = "#344054";
+    ctx.fillText(`${item.value}억`, x, y - 8);
+    ctx.save();
+    ctx.translate(x + 4, 282);
+    ctx.rotate(-0.55);
+    ctx.fillText(item.industry, 0, 0);
+    ctx.restore();
+  });
+  ctx.strokeStyle = "#d8dee8";
+  ctx.beginPath();
+  ctx.moveTo(40, 260);
+  ctx.lineTo(canvas.width - 20, 260);
+  ctx.stroke();
+}
+
+function renderIndustrySummary() {
+  document.getElementById("industrySummary").innerHTML = industries.map(industry => {
+    const count = state.customers.filter(c => c.industry === industry).length;
+    return `<p>${industry}: <strong>${count}</strong>건</p>`;
+  }).join("");
+}
+
+function renderActivitySummary() {
+  const total = state.activities.length;
+  const score = total ? Math.round(state.activities.reduce((sum, item) => sum + Number(item.score || 0), 0) / total) : 0;
+  document.getElementById("activitySummary").innerHTML = `<p>총 활동: <strong>${total}</strong>건</p><p>평균 성과점수: <strong>${score}</strong>점</p>`;
+}
+
+function checkAlerts() {
+  const box = document.getElementById("alertList");
+  if (!box) return;
+  const days = Number(state.settings.alertDays || 7);
+  const now = new Date(todayISO());
+  const alerts = [];
+  state.customers.forEach(c => {
+    [["비딩", c.bidDate], ["방문", c.visitDate]].forEach(([type, date]) => {
+      if (!date) return;
+      const diff = Math.ceil((new Date(date) - now) / 86400000);
+      if (diff >= 0 && diff <= days) alerts.push({ type, date, company: c.company, diff });
+    });
+  });
+  box.innerHTML = alerts.length
+    ? alerts.sort((a, b) => a.diff - b.diff).map(a => `<p class="notice">${a.date} ${a.company} ${a.type} 일정이 ${a.diff}일 남았습니다.</p>`).join("")
+    : `<p>다가오는 비딩/방문 알림이 없습니다.</p>`;
+}
+
+function renderPipeline() {
+  const kanban = document.getElementById("kanban");
+  if (!kanban) return;
+  kanban.innerHTML = "";
+  statuses.forEach(status => {
+    const items = state.customers.filter(c => c.status === status);
+    kanban.insertAdjacentHTML("beforeend", `
+      <div class="kanban-column">
+        <h3>${status} (${items.length})</h3>
+        ${items.map(c => `
+          <div class="deal">
+            <strong>${escapeHtml(c.company)}</strong>
+            <small>${escapeHtml(c.industry)} · ${money(c.expectedSales)}</small><br>
+            <small>${escapeHtml(c.region)}</small>
+            <div class="actions">
+              <button class="ghost" onclick="updateCustomerStatus('${c.id}', -1)">이전</button>
+              <button class="primary" onclick="updateCustomerStatus('${c.id}', 1)">다음</button>
+            </div>
+          </div>`).join("")}
+      </div>
+    `);
+  });
+}
+
+function renderCalendar() {
+  const grid = document.getElementById("calendarGrid");
+  if (!grid) return;
+  const monthValue = document.getElementById("calendarMonth").value || new Date().toISOString().slice(0, 7);
+  const [year, month] = monthValue.split("-").map(Number);
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const schedules = getSchedules();
+  grid.innerHTML = ["일", "월", "화", "수", "목", "금", "토"].map(day => `<div class="day"><strong>${day}</strong></div>`).join("");
+  for (let i = 0; i < first.getDay(); i++) grid.insertAdjacentHTML("beforeend", `<div class="day"></div>`);
+  for (let date = 1; date <= last.getDate(); date++) {
+    const iso = `${monthValue}-${String(date).padStart(2, "0")}`;
+    const events = schedules.filter(item => item.date === iso);
+    grid.insertAdjacentHTML("beforeend", `<div class="day"><strong>${date}</strong>${events.map(e => `<span class="event">${e.type} ${escapeHtml(e.company)}</span>`).join("")}</div>`);
+  }
+  renderScheduleTable();
+}
+
+function getSchedules() {
+  const rows = [];
+  state.customers.forEach(c => {
+    if (c.bidDate) rows.push({ date: c.bidDate, type: "비딩", company: c.company, manager: c.manager, memo: c.memo });
+    if (c.visitDate) rows.push({ date: c.visitDate, type: "방문", company: c.company, manager: c.manager, memo: c.memo });
+  });
+  return rows.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function renderScheduleTable() {
+  const tbody = document.getElementById("scheduleTable");
+  if (!tbody) return;
+  tbody.innerHTML = getSchedules().map(item => `<tr><td>${item.date}</td><td>${item.type}</td><td>${escapeHtml(item.company)}</td><td>${escapeHtml(item.manager)}</td><td>${escapeHtml(item.memo)}</td></tr>`).join("");
+}
+
+function renderCustomerSelects() {
+  ["activityCustomer", "contactCustomer"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = state.customers.map(c => `<option value="${c.id}">${escapeHtml(c.company)}</option>`).join("");
+  });
+  ["revenueCustomer", "routeCustomer"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const customers = contractedCustomers();
+    el.innerHTML = customers.length
+      ? customers.map(c => `<option value="${c.id}">${escapeHtml(c.company)}</option>`).join("")
+      : `<option value="">계약완료 거래처 없음</option>`;
+  });
+}
+
+function addActivity() {
+  const customerId = document.getElementById("activityCustomer").value;
+  if (!customerId) return alert("거래처를 먼저 등록하세요.");
+  state.activities.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    customerId,
+    date: document.getElementById("activityDate").value || todayISO(),
+    type: document.getElementById("activityType").value,
+    score: Number(document.getElementById("activityScore").value || 0),
+    memo: document.getElementById("activityMemo").value
+  });
+  document.getElementById("activityMemo").value = "";
+  save();
+  renderAll();
+}
+
+function deleteActivity(id) {
+  state.activities = state.activities.filter(item => item.id !== id);
+  save();
+  renderAll();
+}
+
+function renderActivities() {
+  const tbody = document.getElementById("activityTable");
+  if (!tbody) return;
+  tbody.innerHTML = state.activities.slice().reverse().map(item => {
+    const customer = state.customers.find(c => c.id === item.customerId);
+    return `<tr><td>${item.date}</td><td>${escapeHtml(customer?.company || "-")}</td><td>${item.type}</td><td>${item.score}</td><td>${escapeHtml(item.memo)}</td><td><button class="danger" onclick="deleteActivity('${item.id}')">삭제</button></td></tr>`;
+  }).join("");
+}
+
+function profitRate(revenue, profit) {
+  return revenue ? `${Math.round((profit / revenue) * 1000) / 10}%` : "0%";
+}
+
+function addRevenueRecord() {
+  const customerId = document.getElementById("revenueCustomer").value;
+  const month = document.getElementById("revenueMonth").value;
+  const revenue = Number(document.getElementById("monthlyRevenue").value || 0);
+  const cost = Number(document.getElementById("monthlyCost").value || 0);
+  if (!customerId) return alert("계약 거래처를 먼저 선택하세요.");
+  if (!month) return alert("실적 월을 선택하세요.");
+  state.revenueRecords.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    customerId,
+    month,
+    revenue,
+    cost,
+    profit: revenue - cost,
+    memo: document.getElementById("revenueMemo").value.trim()
+  });
+  document.getElementById("monthlyRevenue").value = "";
+  document.getElementById("monthlyCost").value = "";
+  document.getElementById("revenueMemo").value = "";
+  save();
+  renderAll();
+}
+
+function deleteRevenueRecord(id) {
+  state.revenueRecords = state.revenueRecords.filter(item => item.id !== id);
+  save();
+  renderAll();
+}
+
+function getRevenueAggregates() {
+  const aggregates = {};
+  state.revenueRecords.forEach(record => {
+    const customer = state.customers.find(c => c.id === record.customerId);
+    if (!customer) return;
+    if (!aggregates[record.customerId]) {
+      aggregates[record.customerId] = {
+        customer,
+        quarters: [
+          { revenue: 0, profit: 0 },
+          { revenue: 0, profit: 0 },
+          { revenue: 0, profit: 0 },
+          { revenue: 0, profit: 0 }
+        ],
+        annual: { revenue: 0, profit: 0 }
+      };
+    }
+    const monthNumber = Number(record.month.split("-")[1]);
+    const quarterIndex = Math.max(0, Math.min(3, Math.ceil(monthNumber / 3) - 1));
+    aggregates[record.customerId].quarters[quarterIndex].revenue += Number(record.revenue || 0);
+    aggregates[record.customerId].quarters[quarterIndex].profit += Number(record.profit || 0);
+    aggregates[record.customerId].annual.revenue += Number(record.revenue || 0);
+    aggregates[record.customerId].annual.profit += Number(record.profit || 0);
+  });
+  return Object.values(aggregates);
+}
+
+function renderRevenue() {
+  const table = document.getElementById("revenueTable");
+  const aggregateTable = document.getElementById("revenueAggregateTable");
+  const summary = document.getElementById("revenueSummary");
+  if (!table || !aggregateTable || !summary) return;
+  const records = state.revenueRecords.slice().sort((a, b) => b.month.localeCompare(a.month));
+  table.innerHTML = records.map(record => {
+    const customer = state.customers.find(c => c.id === record.customerId);
+    return `<tr>
+      <td>${record.month}</td>
+      <td>${escapeHtml(customer?.company || "-")}</td>
+      <td>${money(record.revenue)}</td>
+      <td>${money(record.profit)}</td>
+      <td>${profitRate(record.revenue, record.profit)}</td>
+      <td><button class="danger" onclick="deleteRevenueRecord('${record.id}')">삭제</button></td>
+    </tr>`;
+  }).join("");
+
+  const aggregates = getRevenueAggregates();
+  aggregateTable.innerHTML = aggregates.map(item => {
+    const q = item.quarters;
+    return `<tr>
+      <td>${escapeHtml(item.customer.company)}</td>
+      <td>${money(q[0].revenue)}</td><td>${money(q[0].profit)}</td>
+      <td>${money(q[1].revenue)}</td><td>${money(q[1].profit)}</td>
+      <td>${money(q[2].revenue)}</td><td>${money(q[2].profit)}</td>
+      <td>${money(q[3].revenue)}</td><td>${money(q[3].profit)}</td>
+      <td>${money(item.annual.revenue)}</td>
+      <td>${money(item.annual.profit)}</td>
+      <td>${profitRate(item.annual.revenue, item.annual.profit)}</td>
+    </tr>`;
+  }).join("");
+
+  const annualRevenue = aggregates.reduce((sum, item) => sum + item.annual.revenue, 0);
+  const annualProfit = aggregates.reduce((sum, item) => sum + item.annual.profit, 0);
+  const latestMonth = records[0]?.month || "-";
+  const latestRevenue = records.filter(item => item.month === latestMonth).reduce((sum, item) => sum + Number(item.revenue || 0), 0);
+  const latestProfit = records.filter(item => item.month === latestMonth).reduce((sum, item) => sum + Number(item.profit || 0), 0);
+  summary.innerHTML = `
+    <div class="summary-strip">
+      <div><span>최근 월 매출</span><strong>${money(latestRevenue)}</strong></div>
+      <div><span>최근 월 매출이익</span><strong>${money(latestProfit)}</strong></div>
+      <div><span>연간 누적 매출</span><strong>${money(annualRevenue)}</strong></div>
+      <div><span>연간 누적 이익률</span><strong>${profitRate(annualRevenue, annualProfit)}</strong></div>
+    </div>`;
+  drawProfitChart(aggregates);
+}
+
+function drawProfitChart(aggregates) {
+  const canvas = document.getElementById("profitChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const data = aggregates.length ? aggregates : [{ customer: { company: "데이터 없음" }, annual: { revenue: 1, profit: 0 } }];
+  const max = Math.max(...data.map(item => item.annual.revenue), 1);
+  const barWidth = Math.max(38, (canvas.width - 90) / data.length - 16);
+  ctx.font = "14px Arial";
+  data.forEach((item, index) => {
+    const x = 50 + index * (barWidth + 16);
+    const revenueHeight = (item.annual.revenue / max) * 210;
+    const profitHeight = (Math.max(item.annual.profit, 0) / max) * 210;
+    ctx.fillStyle = "#1f4f82";
+    ctx.fillRect(x, 260 - revenueHeight, barWidth, revenueHeight);
+    ctx.fillStyle = "#2f7d45";
+    ctx.fillRect(x + barWidth * 0.58, 260 - profitHeight, barWidth * 0.42, profitHeight);
+    ctx.fillStyle = "#344054";
+    ctx.fillText(profitRate(item.annual.revenue, item.annual.profit), x, 260 - revenueHeight - 8);
+    ctx.save();
+    ctx.translate(x + 3, 284);
+    ctx.rotate(-0.55);
+    ctx.fillText(item.customer.company, 0, 0);
+    ctx.restore();
+  });
+  ctx.strokeStyle = "#d8dee8";
+  ctx.beginPath();
+  ctx.moveTo(40, 260);
+  ctx.lineTo(canvas.width - 20, 260);
+  ctx.stroke();
+}
+
+function seedRevenueData() {
+  if (!contractedCustomers().length) return alert("계약완료 거래처가 필요합니다. 샘플 데이터를 먼저 생성하세요.");
+  contractedCustomers().slice(0, 3).forEach((customer, index) => {
+    ["01", "02", "03", "04"].forEach((month, monthIndex) => {
+      const revenue = Number(customer.expectedSales || 3) + index + monthIndex * 0.4;
+      state.revenueRecords.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${customer.id}-${month}`,
+        customerId: customer.id,
+        month: `${new Date().getFullYear()}-${month}`,
+        revenue: Math.round(revenue * 10) / 10,
+        cost: Math.round(revenue * 0.78 * 10) / 10,
+        profit: Math.round(revenue * 0.22 * 10) / 10,
+        memo: "계약 샘플 실적"
+      });
+    });
+  });
+  save();
+  renderAll();
+}
+
+function renderMap() {
+  const list = document.getElementById("mapList");
+  const frame = document.getElementById("mapFrame");
+  if (!list || !frame) return;
+  const located = state.customers.filter(c => c.address || c.region);
+  const query = located[0] ? encodeURIComponent(located[0].address || located[0].region) : encodeURIComponent("대한민국 주요 산업단지");
+  frame.src = `https://www.google.com/maps?q=${query}&output=embed`;
+  list.innerHTML = located.map(c => `
+    <div class="map-item">
+      <strong>${escapeHtml(c.company)}</strong><br>
+      <small>${escapeHtml(c.address || c.region)}</small>
+      <div class="actions"><button class="ghost" onclick="focusMap('${encodeURIComponent(c.address || c.region)}')">지도 표시</button></div>
+    </div>
+  `).join("") || "<p>주소가 등록된 거래처가 없습니다.</p>";
+}
+
+function focusMap(query) {
+  document.getElementById("mapFrame").src = `https://www.google.com/maps?q=${query}&output=embed`;
+}
+
+function addRoute() {
+  const customerId = document.getElementById("routeCustomer").value;
+  const origin = document.getElementById("originAddress").value.trim();
+  const destination = document.getElementById("destinationAddress").value.trim();
+  if (!customerId) return alert("계약 거래처를 먼저 선택하세요.");
+  if (!origin || !destination) return alert("상차지와 하차지를 입력하세요.");
+  state.routes.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    customerId,
+    vehicleTon: document.getElementById("vehicleTon").value,
+    origin,
+    destination,
+    cargoItem: document.getElementById("cargoItem").value.trim(),
+    monthlyTrips: Number(document.getElementById("monthlyTrips").value || 0),
+    condition: document.getElementById("routeCondition").value.trim(),
+    memo: document.getElementById("routeMemo").value.trim()
+  });
+  ["originAddress", "destinationAddress", "cargoItem", "monthlyTrips", "routeCondition", "routeMemo"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  save();
+  renderAll();
+}
+
+function deleteRoute(id) {
+  state.routes = state.routes.filter(item => item.id !== id);
+  save();
+  renderAll();
+}
+
+function routeMapUrl(route) {
+  return `https://www.google.com/maps?q=${encodeURIComponent(`${route.origin} to ${route.destination}`)}&output=embed`;
+}
+
+function focusRoute(id) {
+  const route = state.routes.find(item => item.id === id);
+  if (!route) return;
+  document.getElementById("routeMapFrame").src = routeMapUrl(route);
+}
+
+function renderRoutes() {
+  const list = document.getElementById("routeList");
+  const frame = document.getElementById("routeMapFrame");
+  if (!list || !frame) return;
+  const routes = state.routes.filter(route => {
+    const customer = state.customers.find(c => c.id === route.customerId);
+    return customer && (customer.status === "계약완료" || !state.customers.some(c => c.status === "계약완료"));
+  });
+  if (routes[0]) frame.src = routeMapUrl(routes[0]);
+  else frame.src = `https://www.google.com/maps?q=${encodeURIComponent("대한민국 산업단지 운송 경로")}&output=embed`;
+  list.innerHTML = routes.map(route => {
+    const customer = state.customers.find(c => c.id === route.customerId);
+    return `<div class="route-card">
+      <strong>${escapeHtml(customer?.company || "-")}</strong>
+      <small>상차: ${escapeHtml(route.origin)}</small><br>
+      <small>하차: ${escapeHtml(route.destination)}</small><br>
+      <small>차량: ${escapeHtml(route.vehicleTon)} · 월 ${route.monthlyTrips || 0}회 · ${escapeHtml(route.cargoItem)}</small><br>
+      <small>조건: ${escapeHtml(route.condition || "-")}</small>
+      <div class="actions">
+        <button class="primary" onclick="focusRoute('${route.id}')">경로 지도</button>
+        <button class="danger" onclick="deleteRoute('${route.id}')">삭제</button>
+      </div>
+    </div>`;
+  }).join("") || "<p>등록된 계약 운송구간이 없습니다.</p>";
+}
+
+function seedRouteData() {
+  const customers = contractedCustomers();
+  if (!customers.length) return alert("거래처를 먼저 등록하세요.");
+  const samples = [
+    ["충남 아산시 탕정면", "경기 평택시 고덕면", "5톤", "디스플레이 패널", 24, "윙바디 / 충격주의"],
+    ["충북 청주시 오창읍", "경기 화성시 동탄", "11톤", "2차전지 소재", 18, "항온 / 지정시간 입고"],
+    ["울산 남구", "경남 창원시 성산구", "탱크로리", "화학 원료", 12, "위험물 운송"]
+  ];
+  customers.slice(0, 3).forEach((customer, index) => {
+    if (state.routes.some(route => route.customerId === customer.id)) return;
+    const sample = samples[index % samples.length];
+    state.routes.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-route-${index}`,
+      customerId: customer.id,
+      origin: sample[0],
+      destination: sample[1],
+      vehicleTon: sample[2],
+      cargoItem: sample[3],
+      monthlyTrips: sample[4],
+      condition: sample[5],
+      memo: "계약 운송구간 샘플"
+    });
+  });
+  save();
+  renderAll();
+}
+
+function addContact() {
+  const file = document.getElementById("businessCard").files[0];
+  const contact = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    customerId: document.getElementById("contactCustomer").value,
+    name: document.getElementById("contactName").value,
+    title: document.getElementById("contactTitle").value,
+    phone: document.getElementById("contactPhone").value,
+    email: document.getElementById("contactEmail").value,
+    memo: document.getElementById("contactMemo").value,
+    image: ""
+  };
+  if (!contact.customerId || !contact.name) return alert("거래처와 담당자명을 입력하세요.");
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      contact.image = reader.result;
+      state.contacts.push(contact);
+      save();
+      renderAll();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    state.contacts.push(contact);
+    save();
+    renderAll();
+  }
+}
+
+function renderContacts() {
+  const list = document.getElementById("contactList");
+  if (!list) return;
+  list.innerHTML = state.contacts.map(contact => {
+    const customer = state.customers.find(c => c.id === contact.customerId);
+    return `<div class="contact-card">
+      ${contact.image ? `<img src="${contact.image}" alt="명함">` : `<div class="card"><strong>명함</strong></div>`}
+      <div>
+        <strong>${escapeHtml(contact.name)} ${escapeHtml(contact.title)}</strong><br>
+        <small>${escapeHtml(customer?.company || "-")}</small><br>
+        ${escapeHtml(contact.phone)}<br>${escapeHtml(contact.email)}<br>
+        <small>${escapeHtml(contact.memo)}</small>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function importSalesFile() {
+  const file = document.getElementById("excelUpload").files[0];
+  if (!file) return alert("CSV/TSV 파일을 선택하세요.");
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    const delimiter = text.includes("\t") ? "\t" : ",";
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    let updated = 0;
+    lines.slice(1).forEach(line => {
+      const cols = line.split(delimiter).map(v => v.trim());
+      const [company, sales, volume] = cols;
+      const customer = state.customers.find(c => c.company === company);
+      if (customer) {
+        if (sales) customer.expectedSales = Number(sales) || customer.expectedSales;
+        if (volume) customer.volume = volume;
+        updated++;
+      }
+    });
+    state.uploads.push({ file: file.name, date: todayISO(), updated });
+    save();
+    renderAll();
+  };
+  reader.readAsText(file, "utf-8");
+}
+
+function renderUploads() {
+  const log = document.getElementById("uploadLog");
+  if (!log) return;
+  log.innerHTML = state.uploads.map(item => `<p>${item.date} · ${escapeHtml(item.file)} · ${item.updated}건 반영</p>`).join("") || "<p>업로드 이력이 없습니다.</p>";
+}
+
+function exportCustomers() {
+  const header = ["회사명", "산업군", "지역", "주소", "담당자", "연락처", "월물동량", "진행상태", "예상매출"];
+  const rows = state.customers.map(c => [c.company, c.industry, c.region, c.address, c.manager, c.phone, c.volume, c.status, c.expectedSales]);
+  const csv = [header, ...rows].map(row => row.map(value => `"${String(value || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `crm_customers_${todayISO()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function saveSettings() {
+  state.settings.globalTarget = Number(document.getElementById("globalTarget").value || 0);
+  state.settings.alertDays = Number(document.getElementById("alertDays").value || 7);
+  save();
+  renderAll();
+}
+
+function addRule() {
+  const keyword = document.getElementById("ruleKeyword").value.trim();
+  const industry = document.getElementById("ruleIndustry").value;
+  if (!keyword) return;
+  state.settings.rules.push({ keyword, industry });
+  document.getElementById("ruleKeyword").value = "";
+  save();
+  renderAll();
+}
+
+function renderRules() {
+  const list = document.getElementById("ruleList");
+  if (!list) return;
+  list.innerHTML = state.settings.rules.map((rule, index) => `<p><strong>${escapeHtml(rule.industry)}</strong>: ${escapeHtml(rule.keyword)} <button class="danger" onclick="deleteRule(${index})">삭제</button></p>`).join("");
+}
+
+function deleteRule(index) {
+  state.settings.rules.splice(index, 1);
+  save();
+  renderAll();
+}
+
+function resetAllData() {
+  if (!confirm("모든 CRM 데이터를 초기화하시겠습니까?")) return;
+  localStorage.removeItem(storageKey);
+  location.reload();
+}
+
+function seedSampleData() {
+  collectIndustrialParkDB();
+  const first = state.customers[0];
+  if (first && !state.activities.length) {
+    state.activities.push({ id: "act-sample-1", customerId: first.id, date: todayISO(), type: "전화", score: 70, memo: "운송 제안서 발송 및 방문 일정 협의" });
+  }
+  save();
+  renderAll();
+}
+
+function renderAll() {
+  renderCustomers();
+  renderDashboard();
+  renderPipeline();
+  renderCalendar();
+  renderCustomerSelects();
+  renderActivities();
+  renderRevenue();
+  renderMap();
+  renderRoutes();
+  renderContacts();
+  renderUploads();
+  renderRules();
+}
+
+initialize();
+</script>
+</body>
+</html>
